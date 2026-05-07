@@ -1537,8 +1537,45 @@ async function excluirPaciente(id) {
   else loadPacientes();
 }
 
-function editarPaciente(id) {
-  alert('Em breve: edição completa de paciente! 🌿');
+async function editarPaciente(id) {
+  const { data, error } = await sbClient.from('pacientes').select('*').eq('id', id).single();
+  if (error) { alert('Erro ao carregar paciente.'); return; }
+  
+  // Populate edit modal
+  document.getElementById('ep-id').value = data.id;
+  document.getElementById('ep-nome').value = data.nome || '';
+  document.getElementById('ep-telefone').value = data.telefone || '';
+  document.getElementById('ep-email').value = data.email || '';
+  document.getElementById('ep-nascimento').value = data.data_nascimento || '';
+  document.getElementById('ep-valor').value = data.valor_sessao || '';
+  document.getElementById('ep-status').value = data.status_pagamento || 'em_dia';
+  document.getElementById('ep-obs').value = data.observacoes || '';
+  document.getElementById('modal-editar-paciente').style.display = 'flex';
+}
+
+function fecharModalEditar() {
+  document.getElementById('modal-editar-paciente').style.display = 'none';
+}
+
+async function salvarEdicaoPaciente() {
+  const id = document.getElementById('ep-id').value;
+  const btn = document.getElementById('btn-salvar-edicao');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  const { error } = await sbClient.from('pacientes').update({
+    nome: document.getElementById('ep-nome').value.trim(),
+    telefone: document.getElementById('ep-telefone').value.trim(),
+    email: document.getElementById('ep-email').value.trim(),
+    data_nascimento: document.getElementById('ep-nascimento').value,
+    valor_sessao: parseFloat(document.getElementById('ep-valor').value) || 0,
+    status_pagamento: document.getElementById('ep-status').value,
+    observacoes: document.getElementById('ep-obs').value.trim(),
+  }).eq('id', id);
+
+  btn.textContent = 'Salvar'; btn.disabled = false;
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  fecharModalEditar();
+  loadPacientes();
 }
 
 // ── MODAL NOVO PACIENTE ──
@@ -1622,6 +1659,64 @@ async function salvarNovoPaciente() {
       <div style="display:flex;gap:10px;margin-top:4px;">
         <button onclick="fecharModalPaciente()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
         <button id="btn-salvar-paciente" onclick="salvarNovoPaciente()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#7B9E87;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:#fff;cursor:pointer;">Salvar Paciente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL EDITAR PACIENTE -->
+<div id="modal-editar-paciente" style="
+  display:none; position:fixed; inset:0; background:rgba(46,41,37,0.5);
+  z-index:9998; align-items:center; justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;
+">
+  <div style="background:#fff; border-radius:18px; padding:32px; width:100%; max-width:480px; margin:20px; box-shadow:0 8px 40px rgba(46,41,37,0.15);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+      <div style="font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:#2E2925;">Editar Paciente</div>
+      <button onclick="fecharModalEditar()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#A09488;">×</button>
+    </div>
+    <input type="hidden" id="ep-id">
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Nome completo *</label>
+        <input id="ep-nome" type="text" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Telefone</label>
+          <input id="ep-telefone" type="text" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Data de nascimento</label>
+          <input id="ep-nascimento" type="date" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">E-mail</label>
+        <input id="ep-email" type="email" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Valor da sessão (R$)</label>
+          <input id="ep-valor" type="number" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Status pagamento</label>
+          <select id="ep-status" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;background:#FDFCFA;">
+            <option value="em_dia">✅ Em dia</option>
+            <option value="pendente">⚠️ Pendente</option>
+            <option value="atrasado">🔴 Atrasado</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Observações</label>
+        <textarea id="ep-obs" rows="3" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;resize:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharModalEditar()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
+        <button id="btn-salvar-edicao" onclick="salvarEdicaoPaciente()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#7B9E87;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:#fff;cursor:pointer;">Salvar</button>
       </div>
     </div>
   </div>
