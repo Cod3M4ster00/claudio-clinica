@@ -905,8 +905,8 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
 
     <div class="greeting">
       <div class="greeting-text">
-        <h1>Bom dia, Dra. Renata 🌿</h1>
-        <p>Você tem <strong>4 consultas</strong> hoje e <strong>2 pagamentos</strong> pendentes. Tudo sob controle.</p>
+        <h1 id="dash-greeting">Olá! 🌿</h1>
+        <p id="dash-summary">Carregando dados da clínica...</p>
       </div>
       <div class="greeting-visual">🧠</div>
     </div>
@@ -915,26 +915,26 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
       <div class="stat-card">
         <div class="stat-icon" style="background:var(--sage-light)">📅</div>
         <div class="stat-label">Consultas hoje</div>
-        <div class="stat-value">4</div>
-        <div class="stat-sub" style="color:var(--sage)">1ª às 09:00</div>
+        <div class="stat-value" id="stat-consultas">—</div>
+        <div class="stat-sub" style="color:var(--sage)" id="stat-consultas-sub">Carregando...</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background:var(--lav-light)">🫂</div>
         <div class="stat-label">Pacientes ativos</div>
-        <div class="stat-value">12</div>
-        <div class="stat-sub" style="color:var(--lavender)">+1 esta semana</div>
+        <div class="stat-value" id="stat-pacientes">—</div>
+        <div class="stat-sub" style="color:var(--lavender)" id="stat-pacientes-sub">Carregando...</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background:var(--amber-light)">💰</div>
         <div class="stat-label">Receita do mês</div>
-        <div class="stat-value">R$4.8k</div>
-        <div class="stat-sub" style="color:var(--amber)">Meta: R$6k</div>
+        <div class="stat-value" id="stat-receita">—</div>
+        <div class="stat-sub" style="color:var(--amber)" id="stat-receita-sub">Carregando...</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon" style="background:var(--rose-light)">⚠️</div>
         <div class="stat-label">Inadimplentes</div>
-        <div class="stat-value">3</div>
-        <div class="stat-sub" style="color:var(--rose)">R$870 em aberto</div>
+        <div class="stat-value" id="stat-inadimplentes">—</div>
+        <div class="stat-sub" style="color:var(--rose)" id="stat-inadimplentes-sub">Carregando...</div>
       </div>
     </div>
 
@@ -944,41 +944,8 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
           <span class="card-title">Agenda de hoje</span>
           <button class="link-btn" onclick="switchPanel('agenda')">Ver completa →</button>
         </div>
-        <div class="agenda-item">
-          <div class="agenda-time">09:00</div>
-          <div class="agenda-dot" style="background:var(--sage)"></div>
-          <div>
-            <div class="agenda-name">Marina Alves</div>
-            <div class="agenda-type">Sessão individual · 50 min</div>
-          </div>
-          <span class="tag-sm" style="background:var(--sage-light);color:var(--sage)">Confirmada</span>
-        </div>
-        <div class="agenda-item">
-          <div class="agenda-time">11:00</div>
-          <div class="agenda-dot" style="background:var(--lavender)"></div>
-          <div>
-            <div class="agenda-name">Pedro Carvalho</div>
-            <div class="agenda-type">Avaliação inicial · 1h</div>
-          </div>
-          <span class="tag-sm" style="background:var(--lav-light);color:var(--lavender)">Aguardando</span>
-        </div>
-        <div class="agenda-item">
-          <div class="agenda-time">14:00</div>
-          <div class="agenda-dot" style="background:var(--amber)"></div>
-          <div>
-            <div class="agenda-name">Camila Ferreira</div>
-            <div class="agenda-type">Sessão individual · 50 min</div>
-          </div>
-          <span class="tag-sm" style="background:var(--amber-light);color:var(--amber)">Confirmada</span>
-        </div>
-        <div class="agenda-item">
-          <div class="agenda-time">16:30</div>
-          <div class="agenda-dot" style="background:var(--rose)"></div>
-          <div>
-            <div class="agenda-name">Bruno Nascimento</div>
-            <div class="agenda-type">Sessão individual · 50 min</div>
-          </div>
-          <span class="tag-sm" style="background:var(--rose-light);color:var(--rose)">Sem retorno</span>
+        <div id="dash-agenda-hoje">
+          <div style="text-align:center;padding:24px;color:var(--text-soft);font-size:13px;">Carregando agenda...</div>
         </div>
       </div>
 
@@ -987,26 +954,8 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
           <span class="card-title">Avisos do Cláudio</span>
           <button class="link-btn" onclick="switchPanel('chat')">Responder →</button>
         </div>
-        <div class="alert-item" style="background:var(--rose-light)">
-          <div class="alert-icon">💳</div>
-          <div>
-            <div class="alert-text">Lucas Menezes não pagou a sessão de 28/05</div>
-            <div class="alert-sub">R$ 180,00 em aberto · Vencido há 7 dias</div>
-          </div>
-        </div>
-        <div class="alert-item" style="background:var(--amber-light)">
-          <div class="alert-icon">📨</div>
-          <div>
-            <div class="alert-text">Bruno Nascimento não confirmou a sessão de hoje às 16h30</div>
-            <div class="alert-sub">Lembrete enviado ontem · Sem resposta</div>
-          </div>
-        </div>
-        <div class="alert-item" style="background:var(--sage-light)">
-          <div class="alert-icon">📋</div>
-          <div>
-            <div class="alert-text">Prontuário de Marina Alves não atualizado</div>
-            <div class="alert-sub">Última sessão: 21/05 · Recomendado atualizar</div>
-          </div>
+        <div id="dash-avisos">
+          <div style="text-align:center;padding:24px;color:var(--text-soft);font-size:13px;">Carregando avisos...</div>
         </div>
       </div>
     </div>
@@ -1437,7 +1386,115 @@ function enterApp(user) {
   const name = user.user_metadata?.full_name || user.email;
   document.querySelector('.user-name').textContent = name;
   document.querySelector('.user-role').textContent = user.email;
+
+  // Greeting
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  const primeiroNome = name.split(' ')[0];
+  document.getElementById('dash-greeting').textContent = saudacao + ', ' + primeiroNome + '! 🌿';
+
   loadPacientes();
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  const hoje = new Date().toISOString().split('T')[0];
+  const mesInicio = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const mesFim = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).toISOString();
+
+  // Pacientes ativos
+  const { data: pacientes } = await sbClient.from('pacientes').select('*');
+  const total = pacientes?.length || 0;
+  const inadimplentes = pacientes?.filter(p => p.status_pagamento === 'atrasado') || [];
+  const valorAberto = inadimplentes.reduce((s, p) => s + (parseFloat(p.valor_sessao)||0), 0);
+
+  document.getElementById('stat-pacientes').textContent = total;
+  document.getElementById('stat-pacientes-sub').textContent = total === 0 ? 'Nenhum cadastrado' : total === 1 ? '1 cadastrado' : total + ' cadastrados';
+  document.getElementById('stat-inadimplentes').textContent = inadimplentes.length;
+  document.getElementById('stat-inadimplentes-sub').textContent = inadimplentes.length > 0 ? 'R$ ' + valorAberto.toFixed(0) + ' em aberto' : 'Tudo em dia ✓';
+
+  // Sessoes hoje
+  const { data: sessoesHoje } = await sbClient.from('sessoes').select('*, pacientes(nome)').gte('data_hora', hoje + 'T00:00:00').lte('data_hora', hoje + 'T23:59:59').order('data_hora');
+  const qtdHoje = sessoesHoje?.length || 0;
+  document.getElementById('stat-consultas').textContent = qtdHoje;
+  document.getElementById('stat-consultas-sub').textContent = qtdHoje === 0 ? 'Nenhuma hoje' : 'Próxima às ' + (sessoesHoje[0] ? new Date(sessoesHoje[0].data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '--');
+
+  // Receita do mês
+  const { data: sessoesMes } = await sbClient.from('sessoes').select('valor, pago').gte('data_hora', mesInicio).lte('data_hora', mesFim);
+  const receitaTotal = sessoesMes?.filter(s => s.pago).reduce((s, ss) => s + (parseFloat(ss.valor)||0), 0) || 0;
+  const pendente = sessoesMes?.filter(s => !s.pago).reduce((s, ss) => s + (parseFloat(ss.valor)||0), 0) || 0;
+  document.getElementById('stat-receita').textContent = 'R$' + (receitaTotal >= 1000 ? (receitaTotal/1000).toFixed(1)+'k' : receitaTotal.toFixed(0));
+  document.getElementById('stat-receita-sub').textContent = pendente > 0 ? 'R$ ' + pendente.toFixed(0) + ' pendente' : 'Tudo recebido ✓';
+
+  // Summary
+  document.getElementById('dash-summary').innerHTML = 'Você tem <strong>' + qtdHoje + ' consulta' + (qtdHoje !== 1 ? 's' : '') + '</strong> hoje e <strong>' + inadimplentes.length + ' pagamento' + (inadimplentes.length !== 1 ? 's' : '') + '</strong> em atraso.';
+
+  // Agenda hoje
+  const agendaEl = document.getElementById('dash-agenda-hoje');
+  const dotColors = ['var(--sage)','var(--lavender)','var(--amber)','var(--rose)'];
+  const tagColors = [
+    ['var(--sage-light)','var(--sage)'],
+    ['var(--lav-light)','var(--lavender)'],
+    ['var(--amber-light)','var(--amber)'],
+    ['var(--rose-light)','var(--rose)'],
+  ];
+  const statusAgenda = {agendada:'Agendada', confirmada:'Confirmada', cancelada:'Cancelada', realizada:'Realizada'};
+
+  if (!sessoesHoje || sessoesHoje.length === 0) {
+    agendaEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-soft);font-size:13px;">📅 Nenhuma sessão agendada para hoje</div>';
+  } else {
+    agendaEl.innerHTML = sessoesHoje.map((s, i) => {
+      const hora = new Date(s.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const [bg, fg] = tagColors[i % tagColors.length];
+      const nome = s.pacientes?.nome || 'Paciente';
+      const st = s.status || 'agendada';
+      return \`<div class="agenda-item">
+        <div class="agenda-time">\${hora}</div>
+        <div class="agenda-dot" style="background:\${dotColors[i%4]}"></div>
+        <div>
+          <div class="agenda-name">\${nome}</div>
+          <div class="agenda-type">Sessão individual · \${s.duracao_min || 50} min</div>
+        </div>
+        <span class="tag-sm" style="background:\${bg};color:\${fg}">\${statusAgenda[st]||st}</span>
+      </div>\`;
+    }).join('');
+  }
+
+  // Avisos automáticos baseados em dados reais
+  const avisosEl = document.getElementById('dash-avisos');
+  let avisos = [];
+
+  inadimplentes.forEach(p => {
+    avisos.push(\`<div class="alert-item" style="background:var(--rose-light)">
+      <div class="alert-icon">💳</div>
+      <div>
+        <div class="alert-text">\${p.nome} está com pagamento atrasado</div>
+        <div class="alert-sub">R$ \${p.valor_sessao || '—'} em aberto</div>
+      </div>
+    </div>\`);
+  });
+
+  pacientes?.filter(p => p.status_pagamento === 'pendente').forEach(p => {
+    avisos.push(\`<div class="alert-item" style="background:var(--amber-light)">
+      <div class="alert-icon">⏳</div>
+      <div>
+        <div class="alert-text">\${p.nome} tem pagamento pendente</div>
+        <div class="alert-sub">R$ \${p.valor_sessao || '—'} aguardando confirmação</div>
+      </div>
+    </div>\`);
+  });
+
+  if (avisos.length === 0) {
+    avisos.push(\`<div class="alert-item" style="background:var(--sage-light)">
+      <div class="alert-icon">✅</div>
+      <div>
+        <div class="alert-text">Tudo em ordem por aqui!</div>
+        <div class="alert-sub">Nenhum aviso pendente no momento</div>
+      </div>
+    </div>\`);
+  }
+
+  avisosEl.innerHTML = avisos.join('');
 }
 
 async function checkSession() {
