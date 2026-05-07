@@ -1042,7 +1042,7 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
     <div style="display:flex;flex-direction:column;gap:18px;flex:1;overflow-y:auto;padding:28px;">
       <div class="search-bar">
         <input class="search-input" placeholder="🔍  Buscar paciente por nome ou CID...">
-        <button class="topbar-btn primary">+ Novo Paciente</button>
+        <button class="topbar-btn primary" onclick="abrirModalPaciente()">+ Novo Paciente</button>
       </div>
       <div class="patient-grid" id="patient-grid"></div>
     </div>
@@ -1434,10 +1434,10 @@ function enterApp(user) {
   currentUser = user;
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  // Update user name in sidebar
   const name = user.user_metadata?.full_name || user.email;
   document.querySelector('.user-name').textContent = name;
   document.querySelector('.user-role').textContent = user.email;
+  loadPacientes();
 }
 
 async function checkSession() {
@@ -1459,10 +1459,173 @@ function doLogout() {
 checkSession();
 
 // ── INIT ──
-renderPatients();
 renderDays();
 renderTimeline();
 renderFin();
+
+// ── SUPABASE PATIENTS ──
+async function loadPacientes() {
+  if (!sbClient) return;
+  const { data, error } = await sbClient
+    .from('pacientes')
+    .select('*')
+    .order('nome');
+  if (error) { console.error('Erro ao carregar pacientes:', error); return; }
+  renderPacientesDB(data || []);
+}
+
+function renderPacientesDB(list) {
+  const colList = ['sage','lavender','amber','rose'];
+  const colMap = {
+    sage:     ["var(--sage-light)","var(--sage)"],
+    lavender: ["var(--lav-light)","var(--lavender)"],
+    amber:    ["var(--amber-light)","var(--amber)"],
+    rose:     ["var(--rose-light)","var(--rose)"],
+  };
+  const statusLabel = {ok:"Ativo",new:"Novo",warn:"Atenção",late:"Inadimpl.",em_dia:"Ativo",atrasado:"Inadimpl.",pendente:"Atenção"};
+  const statusStyle = {
+    ok:`background:var(--sage-light);color:var(--sage)`,
+    em_dia:`background:var(--sage-light);color:var(--sage)`,
+    new:`background:var(--lav-light);color:var(--lavender)`,
+    warn:`background:var(--amber-light);color:var(--amber)`,
+    pendente:`background:var(--amber-light);color:var(--amber)`,
+    late:`background:var(--rose-light);color:var(--rose)`,
+    atrasado:`background:var(--rose-light);color:var(--rose)`,
+  };
+
+  const grid = document.getElementById('patient-grid');
+  if (!list.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-soft);">
+      <div style="font-size:32px;margin-bottom:10px">🫂</div>
+      <div style="font-size:14px;font-weight:500">Nenhum paciente cadastrado ainda</div>
+      <div style="font-size:12px;margin-top:6px">Clique em "+ Novo Paciente" para começar</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((p, i) => {
+    const col = colList[i % colList.length];
+    const [bg, fg] = colMap[col];
+    const initials = p.nome.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    const st = p.status_pagamento || 'em_dia';
+    return `
+    <div class="patient-card">
+      <div class="patient-head">
+        <div class="p-avatar" style="background:${bg};color:${fg};border:1.5px solid ${fg}33">${initials}</div>
+        <div>
+          <div class="p-name">${p.nome}</div>
+          <div class="p-since">${p.telefone || 'Sem telefone'}</div>
+        </div>
+      </div>
+      <div class="p-row"><span class="p-row-label">E-mail</span><span class="p-row-val" style="font-size:11px">${p.email || '—'}</span></div>
+      <div class="p-row"><span class="p-row-label">Valor sessão</span><span class="p-row-val">R$ ${p.valor_sessao || '0'}</span></div>
+      <div class="p-row"><span class="p-row-label">Pagamento</span>
+        <span class="tag-sm" style="${statusStyle[st]||statusStyle.em_dia};font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600">${statusLabel[st]||'Ativo'}</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <button onclick="editarPaciente('${p.id}')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--text-soft);cursor:pointer;font-family:var(--font-body)">✏️ Editar</button>
+        <button onclick="excluirPaciente('${p.id}')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--rose);cursor:pointer;font-family:var(--font-body)">🗑 Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function excluirPaciente(id) {
+  if (!confirm('Tem certeza que deseja excluir este paciente?')) return;
+  const { error } = await sbClient.from('pacientes').delete().eq('id', id);
+  if (error) alert('Erro ao excluir: ' + error.message);
+  else loadPacientes();
+}
+
+function editarPaciente(id) {
+  alert('Em breve: edição completa de paciente! 🌿');
+}
+
+// ── MODAL NOVO PACIENTE ──
+function abrirModalPaciente() {
+  document.getElementById('modal-paciente').style.display = 'flex';
+}
+
+function fecharModalPaciente() {
+  document.getElementById('modal-paciente').style.display = 'none';
+  ['np-nome','np-telefone','np-email','np-nascimento','np-valor','np-obs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
+async function salvarNovoPaciente() {
+  const nome = document.getElementById('np-nome').value.trim();
+  if (!nome) { alert('Nome é obrigatório!'); return; }
+  const btn = document.getElementById('btn-salvar-paciente');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  const { error } = await sbClient.from('pacientes').insert({
+    user_id: user.id,
+    nome,
+    telefone: document.getElementById('np-telefone').value.trim(),
+    email: document.getElementById('np-email').value.trim(),
+    data_nascimento: document.getElementById('np-nascimento').value,
+    valor_sessao: parseFloat(document.getElementById('np-valor').value) || 0,
+    observacoes: document.getElementById('np-obs').value.trim(),
+    status_pagamento: 'em_dia',
+  });
+
+  btn.textContent = 'Salvar Paciente'; btn.disabled = false;
+
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  fecharModalPaciente();
+  loadPacientes();
+}
 </script>
+
+<!-- MODAL NOVO PACIENTE -->
+<div id="modal-paciente" style="
+  display:none; position:fixed; inset:0; background:rgba(46,41,37,0.5);
+  z-index:9998; align-items:center; justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;
+">
+  <div style="background:#fff; border-radius:18px; padding:32px; width:100%; max-width:480px; margin:20px; box-shadow:0 8px 40px rgba(46,41,37,0.15);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+      <div style="font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:#2E2925;">Novo Paciente</div>
+      <button onclick="fecharModalPaciente()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#A09488;">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Nome completo *</label>
+        <input id="np-nome" type="text" placeholder="Nome do paciente" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Telefone</label>
+          <input id="np-telefone" type="text" placeholder="(00) 00000-0000" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Data de nascimento</label>
+          <input id="np-nascimento" type="date" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">E-mail</label>
+        <input id="np-email" type="email" placeholder="email@paciente.com" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Valor da sessão (R$)</label>
+        <input id="np-valor" type="number" placeholder="180" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Observações</label>
+        <textarea id="np-obs" placeholder="Anotações iniciais sobre o paciente..." rows="3" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;resize:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharModalPaciente()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
+        <button id="btn-salvar-paciente" onclick="salvarNovoPaciente()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#7B9E87;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:#fff;cursor:pointer;">Salvar Paciente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
