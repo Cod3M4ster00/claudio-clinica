@@ -716,9 +716,140 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
 ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 99px; }
 ::-webkit-scrollbar-track { background: transparent; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="app">
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" style="
+  position:fixed; inset:0; background:#F7F4EF;
+  display:flex; align-items:center; justify-content:center;
+  z-index:9999; font-family:'Plus Jakarta Sans',sans-serif;
+">
+  <div style="width:100%; max-width:400px; padding:32px;">
+
+    <!-- Logo -->
+    <div style="text-align:center; margin-bottom:40px;">
+      <div style="font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:600; color:#2E2925;">
+        Cláu<span style="color:#7B9E87;">dio</span>
+      </div>
+      <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#A09488; margin-top:4px;">
+        Assistente de Clínica
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div style="background:#fff; border:1px solid #EAE5DE; border-radius:16px; padding:32px;">
+
+      <!-- Tabs -->
+      <div style="display:flex; gap:0; margin-bottom:28px; background:#F7F4EF; border-radius:8px; padding:3px;">
+        <button id="tab-login" onclick="switchTab('login')" style="
+          flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer;
+          font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:600;
+          background:#fff; color:#2E2925; box-shadow:0 1px 3px rgba(0,0,0,0.08);
+          transition:all .15s;
+        ">Entrar</button>
+        <button id="tab-signup" onclick="switchTab('signup')" style="
+          flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer;
+          font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:500;
+          background:transparent; color:#A09488;
+          transition:all .15s;
+        ">Criar conta</button>
+      </div>
+
+      <!-- Login Form -->
+      <div id="form-login">
+        <div style="margin-bottom:14px;">
+          <label style="font-size:11.5px; font-weight:600; color:#6B6057; display:block; margin-bottom:5px;">E-mail</label>
+          <input id="login-email" type="email" placeholder="seu@email.com" style="
+            width:100%; padding:10px 14px; border:1px solid #EAE5DE; border-radius:8px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; color:#2E2925;
+            outline:none; transition:border .15s; box-sizing:border-box; background:#FDFCFA;
+          " onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="font-size:11.5px; font-weight:600; color:#6B6057; display:block; margin-bottom:5px;">Senha</label>
+          <input id="login-password" type="password" placeholder="••••••••" style="
+            width:100%; padding:10px 14px; border:1px solid #EAE5DE; border-radius:8px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; color:#2E2925;
+            outline:none; transition:border .15s; box-sizing:border-box; background:#FDFCFA;
+          " onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'"
+          onkeydown="if(event.key==='Enter') doLogin()">
+        </div>
+        <button onclick="doLogin()" id="btn-login" style="
+          width:100%; padding:12px; background:#7B9E87; border:none; border-radius:8px;
+          color:#fff; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:600;
+          cursor:pointer; transition:background .15s;
+        " onmouseover="this.style.background='#6a8e76'" onmouseout="this.style.background='#7B9E87'">
+          Entrar
+        </button>
+        <div style="text-align:center; margin-top:14px;">
+          <button onclick="doForgotPassword()" style="
+            background:none; border:none; font-size:12px; color:#A09488; cursor:pointer;
+            font-family:'Plus Jakarta Sans',sans-serif; text-decoration:underline;
+          ">Esqueci minha senha</button>
+        </div>
+      </div>
+
+      <!-- Signup Form -->
+      <div id="form-signup" style="display:none;">
+        <div style="margin-bottom:14px;">
+          <label style="font-size:11.5px; font-weight:600; color:#6B6057; display:block; margin-bottom:5px;">Nome completo</label>
+          <input id="signup-name" type="text" placeholder="Dra. Nome Sobrenome" style="
+            width:100%; padding:10px 14px; border:1px solid #EAE5DE; border-radius:8px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; color:#2E2925;
+            outline:none; transition:border .15s; box-sizing:border-box; background:#FDFCFA;
+          " onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:11.5px; font-weight:600; color:#6B6057; display:block; margin-bottom:5px;">E-mail profissional</label>
+          <input id="signup-email" type="email" placeholder="seu@email.com" style="
+            width:100%; padding:10px 14px; border:1px solid #EAE5DE; border-radius:8px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; color:#2E2925;
+            outline:none; transition:border .15s; box-sizing:border-box; background:#FDFCFA;
+          " onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:11.5px; font-weight:600; color:#6B6057; display:block; margin-bottom:5px;">Senha <span style="color:#A09488; font-weight:400;">(mín. 8 caracteres)</span></label>
+          <input id="signup-password" type="password" placeholder="••••••••" style="
+            width:100%; padding:10px 14px; border:1px solid #EAE5DE; border-radius:8px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; color:#2E2925;
+            outline:none; transition:border .15s; box-sizing:border-box; background:#FDFCFA;
+          " onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="font-size:11.5px; font-weight:600; color:#6B6057; display:block; margin-bottom:5px;">Confirmar senha</label>
+          <input id="signup-confirm" type="password" placeholder="••••••••" style="
+            width:100%; padding:10px 14px; border:1px solid #EAE5DE; border-radius:8px;
+            font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px; color:#2E2925;
+            outline:none; transition:border .15s; box-sizing:border-box; background:#FDFCFA;
+          " onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'"
+          onkeydown="if(event.key==='Enter') doSignup()">
+        </div>
+        <button onclick="doSignup()" style="
+          width:100%; padding:12px; background:#7B9E87; border:none; border-radius:8px;
+          color:#fff; font-family:'Plus Jakarta Sans',sans-serif; font-size:14px; font-weight:600;
+          cursor:pointer; transition:background .15s;
+        " onmouseover="this.style.background='#6a8e76'" onmouseout="this.style.background='#7B9E87'">
+          Criar conta
+        </button>
+      </div>
+
+      <!-- Message -->
+      <div id="auth-msg" style="
+        display:none; margin-top:14px; padding:10px 14px; border-radius:8px;
+        font-size:12.5px; text-align:center; line-height:1.5;
+      "></div>
+    </div>
+
+    <div style="text-align:center; margin-top:20px; font-size:11px; color:#A09488; line-height:1.6;">
+      🔐 Dados protegidos com criptografia<br>
+      Em conformidade com a LGPD e CFP
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none;">
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -754,6 +885,7 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
       <div>
         <div class="user-name">Dra. Renata</div>
         <div class="user-role">Psicóloga — CRP 06/12345</div>
+      <button onclick="doLogout()" style="margin-top:10px; width:100%; padding:6px; background:none; border:1px solid #EAE5DE; border-radius:6px; font-size:11px; color:#A09488; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; transition:all .15s;" onmouseover="this.style.borderColor='#C4706A';this.style.color='#C4706A'" onmouseout="this.style.borderColor='#EAE5DE';this.style.color='#A09488'">Sair da conta</button>
       </div>
     </div>
   </div>
@@ -1223,6 +1355,108 @@ function sendQ(q) {
 
 function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
 function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+
+
+// ── SUPABASE AUTH ──
+const SUPABASE_URL = 'https://fbltenrfhruojcxxrrwh.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZibHRlbnJmaHJ1b2pjeHhycndoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTQ2MjMsImV4cCI6MjA5MzY3MDYyM30._nrSA92kF9e_-gTHxcILvaYEJdicVU34_9bopDtMBYs';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let currentUser = null;
+
+function showMsg(msg, isError = false) {
+  const el = document.getElementById('auth-msg');
+  el.style.display = 'block';
+  el.style.background = isError ? '#FAF0EF' : '#EBF4EE';
+  el.style.color = isError ? '#C4706A' : '#4a7a57';
+  el.style.border = isError ? '1px solid #f0c8c4' : '1px solid #c2dfc9';
+  el.textContent = msg;
+}
+
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('form-login').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('form-signup').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-msg').style.display = 'none';
+  document.getElementById('tab-login').style.background = isLogin ? '#fff' : 'transparent';
+  document.getElementById('tab-login').style.color = isLogin ? '#2E2925' : '#A09488';
+  document.getElementById('tab-login').style.fontWeight = isLogin ? '600' : '500';
+  document.getElementById('tab-login').style.boxShadow = isLogin ? '0 1px 3px rgba(0,0,0,0.08)' : 'none';
+  document.getElementById('tab-signup').style.background = !isLogin ? '#fff' : 'transparent';
+  document.getElementById('tab-signup').style.color = !isLogin ? '#2E2925' : '#A09488';
+  document.getElementById('tab-signup').style.fontWeight = !isLogin ? '600' : '500';
+  document.getElementById('tab-signup').style.boxShadow = !isLogin ? '0 1px 3px rgba(0,0,0,0.08)' : 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { showMsg('Preencha e-mail e senha.', true); return; }
+  const btn = document.getElementById('btn-login');
+  btn.textContent = 'Entrando...'; btn.disabled = true;
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    showMsg('E-mail ou senha incorretos.', true);
+    btn.textContent = 'Entrar'; btn.disabled = false;
+  } else {
+    enterApp(data.user);
+  }
+}
+
+async function doSignup() {
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const confirm = document.getElementById('signup-confirm').value;
+  if (!name || !email || !password) { showMsg('Preencha todos os campos.', true); return; }
+  if (password.length < 8) { showMsg('A senha deve ter no mínimo 8 caracteres.', true); return; }
+  if (password !== confirm) { showMsg('As senhas não conferem.', true); return; }
+  const { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { full_name: name } }
+  });
+  if (error) {
+    showMsg(error.message, true);
+  } else {
+    showMsg('✅ Conta criada! Verifique seu e-mail para confirmar o cadastro.');
+  }
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { showMsg('Digite seu e-mail acima primeiro.', true); return; }
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) showMsg(error.message, true);
+  else showMsg('✅ Link de recuperação enviado para seu e-mail!');
+}
+
+function enterApp(user) {
+  currentUser = user;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  // Update user name in sidebar
+  const name = user.user_metadata?.full_name || user.email;
+  document.querySelector('.user-name').textContent = name;
+  document.querySelector('.user-role').textContent = user.email;
+}
+
+async function checkSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    enterApp(session.user);
+  }
+}
+
+// Logout button
+function doLogout() {
+  supabase.auth.signOut();
+  currentUser = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+// Check session on load
+checkSession();
 
 // ── INIT ──
 renderPatients();
