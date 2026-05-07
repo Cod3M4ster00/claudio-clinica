@@ -1448,15 +1448,15 @@ async function loadDashboard() {
       const [bg, fg] = tagColors[i % tagColors.length];
       const nome = s.pacientes?.nome || 'Paciente';
       const st = s.status || 'agendada';
-      return \`<div class="agenda-item">
-        <div class="agenda-time">\${hora}</div>
-        <div class="agenda-dot" style="background:\${dotColors[i%4]}"></div>
+      return `<div class="agenda-item">
+        <div class="agenda-time">${hora}</div>
+        <div class="agenda-dot" style="background:${dotColors[i%4]}"></div>
         <div>
-          <div class="agenda-name">\${nome}</div>
-          <div class="agenda-type">Sessão individual · \${s.duracao_min || 50} min</div>
+          <div class="agenda-name">${nome}</div>
+          <div class="agenda-type">Sessão individual · ${s.duracao_min || 50} min</div>
         </div>
-        <span class="tag-sm" style="background:\${bg};color:\${fg}">\${statusAgenda[st]||st}</span>
-      </div>\`;
+        <span class="tag-sm" style="background:${bg};color:${fg}">${statusAgenda[st]||st}</span>
+      </div>`;
     }).join('');
   }
 
@@ -1465,33 +1465,33 @@ async function loadDashboard() {
   let avisos = [];
 
   inadimplentes.forEach(p => {
-    avisos.push(\`<div class="alert-item" style="background:var(--rose-light)">
+    avisos.push(`<div class="alert-item" style="background:var(--rose-light)">
       <div class="alert-icon">💳</div>
       <div>
-        <div class="alert-text">\${p.nome} está com pagamento atrasado</div>
-        <div class="alert-sub">R$ \${p.valor_sessao || '—'} em aberto</div>
+        <div class="alert-text">${p.nome} está com pagamento atrasado</div>
+        <div class="alert-sub">R$ ${p.valor_sessao || '—'} em aberto</div>
       </div>
-    </div>\`);
+    </div>`);
   });
 
   pacientes?.filter(p => p.status_pagamento === 'pendente').forEach(p => {
-    avisos.push(\`<div class="alert-item" style="background:var(--amber-light)">
+    avisos.push(`<div class="alert-item" style="background:var(--amber-light)">
       <div class="alert-icon">⏳</div>
       <div>
-        <div class="alert-text">\${p.nome} tem pagamento pendente</div>
-        <div class="alert-sub">R$ \${p.valor_sessao || '—'} aguardando confirmação</div>
+        <div class="alert-text">${p.nome} tem pagamento pendente</div>
+        <div class="alert-sub">R$ ${p.valor_sessao || '—'} aguardando confirmação</div>
       </div>
-    </div>\`);
+    </div>`);
   });
 
   if (avisos.length === 0) {
-    avisos.push(\`<div class="alert-item" style="background:var(--sage-light)">
+    avisos.push(`<div class="alert-item" style="background:var(--sage-light)">
       <div class="alert-icon">✅</div>
       <div>
         <div class="alert-text">Tudo em ordem por aqui!</div>
         <div class="alert-sub">Nenhum aviso pendente no momento</div>
       </div>
-    </div>\`);
+    </div>`);
   }
 
   avisosEl.innerHTML = avisos.join('');
