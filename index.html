@@ -1001,9 +1001,9 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
   <div class="panel" id="agenda-panel">
     <div style="display:flex;flex-direction:column;gap:18px;flex:1;overflow-y:auto;padding:28px;">
       <div class="week-nav">
-        <span class="week-label">Semana de 02 a 06 de Junho, 2025</span>
+        <span class="week-label" id="agenda-semana-label">Carregando...</span>
         <div class="day-tabs" id="day-tabs"></div>
-        <button class="topbar-btn primary">+ Nova Sessão</button>
+        <button class="topbar-btn primary" onclick="abrirModalSessao()">+ Nova Sessão</button>
       </div>
       <div class="agenda-timeline" id="timeline"></div>
     </div>
@@ -1135,58 +1135,170 @@ function renderPatients() {
   }).join('');
 }
 
-function renderDays() {
-  const tabs = document.getElementById('day-tabs');
-  tabs.innerHTML = dayNames.map((d,i) => `
-    <div class="day-tab ${i===0?'active':''}" onclick="selectDay(${i},this)">
-      <span class="day-num">${dayNums[i]}</span>
-      <span class="day-name">${d}</span>
-    </div>`).join('');
+// ── AGENDA REAL ──
+let agendaData = [];
+let selectedDate = new Date();
+
+function getWeekDays(baseDate) {
+  const days = [];
+  const d = new Date(baseDate);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  for (let i = 0; i < 7; i++) {
+    days.push(new Date(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return days;
 }
 
-function selectDay(i, el) {
+function renderDays() {
+  const weekDays = getWeekDays(selectedDate);
+  const dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const tabs = document.getElementById('day-tabs');
+  const today = new Date().toDateString();
+
+  // Update week label
+  const inicio = weekDays[0].toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+  const fim = weekDays[6].toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('agenda-semana-label').textContent = `Semana de ${inicio} a ${fim}`;
+
+  tabs.innerHTML = weekDays.map((d, i) => {
+    const isToday = d.toDateString() === today;
+    const isSelected = d.toDateString() === selectedDate.toDateString();
+    return `<div class="day-tab ${isSelected?'active':''}" onclick="selectDay(${i}, this, '${d.toISOString().split('T')[0]}')">
+      <span class="day-num">${d.getDate()}</span>
+      <span class="day-name">${dayNames[i]}</span>
+      ${isToday && !isSelected ? '<span style="display:block;width:4px;height:4px;border-radius:50%;background:var(--sage);margin:2px auto 0;"></span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function selectDay(i, el, dateStr) {
   document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+  selectedDate = new Date(dateStr + 'T12:00:00');
+  loadAgendaDia(dateStr);
+}
+
+async function loadAgendaDia(dateStr) {
+  if (!dateStr) dateStr = selectedDate.toISOString().split('T')[0];
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-soft);font-size:13px;">Carregando sessões...</div>';
+
+  const { data: sessoes, error } = await sbClient
+    .from('sessoes')
+    .select('*, pacientes(nome)')
+    .gte('data_hora', dateStr + 'T00:00:00')
+    .lte('data_hora', dateStr + 'T23:59:59')
+    .order('data_hora');
+
+  if (error) { tl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--rose);">Erro ao carregar sessões.</div>'; return; }
+
+  const dotColors = ['var(--sage)','var(--lavender)','var(--amber)','var(--rose)'];
+  const tagColors = [
+    ['var(--sage-light)','var(--sage)'],
+    ['var(--lav-light)','var(--lavender)'],
+    ['var(--amber-light)','var(--amber)'],
+    ['var(--rose-light)','var(--rose)'],
+  ];
+  const statusLabel = {agendada:'Agendada',confirmada:'Confirmada',cancelada:'Cancelada',realizada:'Realizada'};
+
+  if (!sessoes || sessoes.length === 0) {
+    tl.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-soft);">
+      <div style="font-size:32px;margin-bottom:10px">📅</div>
+      <div style="font-size:14px;font-weight:500">Nenhuma sessão neste dia</div>
+      <div style="font-size:12px;margin-top:6px">Clique em "+ Nova Sessão" para agendar</div>
+    </div>`;
+    return;
+  }
+
+  tl.innerHTML = sessoes.map((s, i) => {
+    const hora = new Date(s.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const [bg, fg] = tagColors[i % 4];
+    const nome = s.pacientes?.nome || 'Paciente';
+    const st = s.status || 'agendada';
+    return `<div class="timeline-slot">
+      <div class="slot-time">${hora}</div>
+      <div class="slot-block">
+        <div class="slot-color" style="background:${dotColors[i%4]}"></div>
+        <div style="flex:1">
+          <div class="slot-name">${nome}</div>
+          <div class="slot-type">Sessão · ${s.duracao_min||50} min · R$ ${s.valor||0}</div>
+        </div>
+        <span class="tag-sm" style="background:${bg};color:${fg};margin-right:8px">${statusLabel[st]||st}</span>
+        <div class="slot-actions">
+          <div class="icon-btn" title="Marcar como pago" onclick="marcarPago('${s.id}')" style="${s.pago?'background:var(--sage-light);border-color:var(--sage)':''}">💰</div>
+          <div class="icon-btn" title="Cancelar sessão" onclick="cancelarSessao('${s.id}')">🗑</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function marcarPago(id) {
+  await sbClient.from('sessoes').update({pago: true, status: 'realizada'}).eq('id', id);
+  loadAgendaDia();
+  loadDashboard();
+}
+
+async function cancelarSessao(id) {
+  if (!confirm('Cancelar esta sessão?')) return;
+  await sbClient.from('sessoes').delete().eq('id', id);
+  loadAgendaDia();
+  loadDashboard();
 }
 
 function renderTimeline() {
-  const times = ["09:00","","11:00","","14:00","15:30","16:30"];
-  const slots = [
-    {name:"Marina Alves",type:"Sessão individual · 50 min",col:"sage"},
-    null,
-    {name:"Pedro Carvalho",type:"Avaliação inicial · 1h",col:"lavender"},
-    null,
-    {name:"Camila Ferreira",type:"Sessão individual · 50 min",col:"amber"},
-    {name:"",type:"",col:""},
-    {name:"Bruno Nascimento",type:"Sessão individual · 50 min",col:"rose"},
-  ];
-  const tl = document.getElementById('timeline');
-  tl.innerHTML = times.map((t, i) => {
-    const s = slots[i];
-    if (!s) return '';
-    const filled = s.name;
-    const [bg,fg] = filled ? cols[s.col] : ["",""];
-    return `
-    <div class="timeline-slot">
-      <div class="slot-time">${t}</div>
-      ${filled ? `
-      <div class="slot-block">
-        <div class="slot-color" style="background:${fg}"></div>
-        <div>
-          <div class="slot-name">${s.name}</div>
-          <div class="slot-type">${s.type}</div>
-        </div>
-        <div class="slot-actions">
-          <div class="icon-btn" title="Mensagem">📨</div>
-          <div class="icon-btn" title="Prontuário">📋</div>
-          <div class="icon-btn" title="Remarcar">🔄</div>
-        </div>
-      </div>` : `
-      <div class="slot-block empty">
-        <span>+ Adicionar sessão neste horário</span>
-      </div>`}
-    </div>`;
-  }).join('');
+  const today = new Date().toISOString().split('T')[0];
+  loadAgendaDia(today);
+}
+
+// ── MODAL NOVA SESSÃO ──
+async function abrirModalSessao() {
+  // Load patients for select
+  const { data: pacs } = await sbClient.from('pacientes').select('id, nome').order('nome');
+  const select = document.getElementById('ns-paciente');
+  select.innerHTML = '<option value="">Selecione o paciente...</option>' +
+    (pacs||[]).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  
+  // Set default date to selected day
+  document.getElementById('ns-data').value = selectedDate.toISOString().split('T')[0];
+  document.getElementById('modal-sessao').style.display = 'flex';
+}
+
+function fecharModalSessao() {
+  document.getElementById('modal-sessao').style.display = 'none';
+}
+
+async function salvarNovaSessao() {
+  const paciente_id = document.getElementById('ns-paciente').value;
+  const data = document.getElementById('ns-data').value;
+  const hora = document.getElementById('ns-hora').value;
+  if (!paciente_id || !data || !hora) { alert('Preencha paciente, data e horário!'); return; }
+
+  const btn = document.getElementById('btn-salvar-sessao');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  const { data: { user } } = await sbClient.auth.getUser();
+  const valor = parseFloat(document.getElementById('ns-valor').value) || 0;
+
+  const { error } = await sbClient.from('sessoes').insert({
+    user_id: user.id,
+    paciente_id,
+    data_hora: data + 'T' + hora + ':00',
+    duracao_min: parseInt(document.getElementById('ns-duracao').value) || 50,
+    valor,
+    status: 'agendada',
+    pago: false,
+    notas: document.getElementById('ns-notas').value.trim(),
+  });
+
+  btn.textContent = 'Salvar Sessão'; btn.disabled = false;
+  if (error) { alert('Erro: ' + error.message); return; }
+  fecharModalSessao();
+  loadAgendaDia(data);
+  loadDashboard();
 }
 
 function renderFin() {
@@ -1395,6 +1507,8 @@ function enterApp(user) {
 
   loadPacientes();
   loadDashboard();
+  renderDays();
+  renderTimeline();
 }
 
 async function loadDashboard() {
@@ -1774,6 +1888,61 @@ async function salvarNovoPaciente() {
       <div style="display:flex;gap:10px;margin-top:4px;">
         <button onclick="fecharModalEditar()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
         <button id="btn-salvar-edicao" onclick="salvarEdicaoPaciente()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#7B9E87;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:#fff;cursor:pointer;">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL NOVA SESSÃO -->
+<div id="modal-sessao" style="
+  display:none; position:fixed; inset:0; background:rgba(46,41,37,0.5);
+  z-index:9998; align-items:center; justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;
+">
+  <div style="background:#fff; border-radius:18px; padding:32px; width:100%; max-width:460px; margin:20px; box-shadow:0 8px 40px rgba(46,41,37,0.15);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+      <div style="font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:#2E2925;">Nova Sessão</div>
+      <button onclick="fecharModalSessao()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#A09488;">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Paciente *</label>
+        <select id="ns-paciente" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;background:#FDFCFA;">
+          <option value="">Selecione o paciente...</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Data *</label>
+          <input id="ns-data" type="date" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Horário *</label>
+          <input id="ns-hora" type="time" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Duração (min)</label>
+          <select id="ns-duracao" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;background:#FDFCFA;">
+            <option value="50">50 minutos</option>
+            <option value="60">60 minutos</option>
+            <option value="90">90 minutos</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Valor (R$)</label>
+          <input id="ns-valor" type="number" placeholder="180" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Notas</label>
+        <textarea id="ns-notas" rows="2" placeholder="Observações sobre a sessão..." style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;resize:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="fecharModalSessao()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
+        <button id="btn-salvar-sessao" onclick="salvarNovaSessao()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#7B9E87;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:#fff;cursor:pointer;">Salvar Sessão</button>
       </div>
     </div>
   </div>
