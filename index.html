@@ -1360,7 +1360,7 @@ function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.sc
 // ── SUPABASE AUTH ──
 const SUPABASE_URL = 'https://fbltenrfhruojcxxrrwh.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZibHRlbnJmaHJ1b2pjeHhycndoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTQ2MjMsImV4cCI6MjA5MzY3MDYyM30._nrSA92kF9e_-gTHxcILvaYEJdicVU34_9bopDtMBYs';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let currentUser = null;
 
@@ -1394,7 +1394,7 @@ async function doLogin() {
   if (!email || !password) { showMsg('Preencha e-mail e senha.', true); return; }
   const btn = document.getElementById('btn-login');
   btn.textContent = 'Entrando...'; btn.disabled = true;
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
   if (error) {
     showMsg('E-mail ou senha incorretos.', true);
     btn.textContent = 'Entrar'; btn.disabled = false;
@@ -1411,7 +1411,7 @@ async function doSignup() {
   if (!name || !email || !password) { showMsg('Preencha todos os campos.', true); return; }
   if (password.length < 8) { showMsg('A senha deve ter no mínimo 8 caracteres.', true); return; }
   if (password !== confirm) { showMsg('As senhas não conferem.', true); return; }
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await sbClient.auth.signUp({
     email, password,
     options: { data: { full_name: name } }
   });
@@ -1425,7 +1425,7 @@ async function doSignup() {
 async function doForgotPassword() {
   const email = document.getElementById('login-email').value.trim();
   if (!email) { showMsg('Digite seu e-mail acima primeiro.', true); return; }
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await sbClient.auth.resetPasswordForEmail(email);
   if (error) showMsg(error.message, true);
   else showMsg('✅ Link de recuperação enviado para seu e-mail!');
 }
@@ -1441,7 +1441,7 @@ function enterApp(user) {
 }
 
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   if (session) {
     enterApp(session.user);
   }
@@ -1449,7 +1449,7 @@ async function checkSession() {
 
 // Logout button
 function doLogout() {
-  supabase.auth.signOut();
+  sbClient.auth.signOut();
   currentUser = null;
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
