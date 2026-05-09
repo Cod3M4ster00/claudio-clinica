@@ -717,6 +717,7 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
 ::-webkit-scrollbar-track { background: transparent; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -856,7 +857,7 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
   <div class="logo">
     <div class="logo-name">Cláu<em>dio</em></div>
     <div class="logo-sub">Assistente de Clínica</div>
-    <div class="clinic-pill">🌿 Psicologia</div>
+    <div class="clinic-pill" id="sidebar-clinica">🌿 Minha Clínica</div>
   </div>
   <nav class="nav">
     <div class="nav-label">Painel</div>
@@ -876,15 +877,18 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
     </div>
     <div class="nav-item" data-panel="financeiro">
       <span class="nav-icon">💳</span> Financeiro
-      <span class="nav-badge">3</span>
+      <span class="nav-badge" id="badge-financeiro">0</span>
+    </div>
+    <div class="nav-item" data-panel="perfil">
+      <span class="nav-icon">⚙️</span> Perfil da Clínica
     </div>
   </nav>
   <div class="sidebar-bottom">
     <div class="user-card">
       <div class="avatar">DR</div>
       <div>
-        <div class="user-name">Dra. Renata</div>
-        <div class="user-role">Psicóloga — CRP 06/12345</div>
+        <div class="user-name" id="sidebar-nome">Carregando...</div>
+        <div class="user-role" id="sidebar-role">...</div>
       <button onclick="doLogout()" style="margin-top:10px; width:100%; padding:6px; background:none; border:1px solid #EAE5DE; border-radius:6px; font-size:11px; color:#A09488; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; transition:all .15s;" onmouseover="this.style.borderColor='#C4706A';this.style.color='#C4706A'" onmouseout="this.style.borderColor='#EAE5DE';this.style.color='#A09488'">Sair da conta</button>
       </div>
     </div>
@@ -968,7 +972,7 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
       <div class="msg ai">
         <div class="msg-av ai">CL</div>
         <div>
-          <div class="bubble">Olá, Dra. Renata! 🌿 Sou o Cláudio, seu assistente de clínica.<br><br>Posso te ajudar com a agenda, lembretes de sessão, cobranças, histórico de pacientes e muito mais. Como posso te ajudar agora?</div>
+          <div class="bubble">Olá! 🌿 Sou o Cláudio, seu assistente de clínica.<br><br>Posso te ajudar com a agenda, lembretes de sessão, cobranças, histórico de pacientes e muito mais. Como posso te ajudar agora?</div>
           <div class="msg-time">agora</div>
         </div>
       </div>
@@ -990,7 +994,9 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
   <div class="panel" id="pacientes-panel">
     <div style="display:flex;flex-direction:column;gap:18px;flex:1;overflow-y:auto;padding:28px;">
       <div class="search-bar">
-        <input class="search-input" placeholder="🔍  Buscar paciente por nome ou CID...">
+        <input class="search-input" id="search-pacientes" placeholder="🔍  Buscar paciente por nome..." oninput="filtrarPacientes(this.value)">
+        <button class="topbar-btn" onclick="baixarModelo()">⬇ Modelo CSV</button>
+        <button class="topbar-btn" onclick="abrirModalImport()">📥 Importar</button>
         <button class="topbar-btn primary" onclick="abrirModalPaciente()">+ Novo Paciente</button>
       </div>
       <div class="patient-grid" id="patient-grid"></div>
@@ -1014,30 +1020,33 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
     <div style="display:flex;flex-direction:column;gap:18px;flex:1;overflow-y:auto;padding:28px;">
       <div class="stats-row">
         <div class="stat-card">
-          <div class="stat-label">Recebido em junho</div>
-          <div class="stat-value" style="font-size:22px">R$ 3.240</div>
-          <div class="stat-sub" style="color:var(--sage)">18 sessões pagas</div>
+          <div class="stat-label">Recebido este mês</div>
+          <div class="stat-value" style="font-size:22px" id="fin-recebido">—</div>
+          <div class="stat-sub" style="color:var(--sage)" id="fin-recebido-sub">Carregando...</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">A receber</div>
-          <div class="stat-value" style="font-size:22px">R$ 1.560</div>
-          <div class="stat-sub" style="color:var(--amber)">8 sessões pendentes</div>
+          <div class="stat-value" style="font-size:22px" id="fin-pendente">—</div>
+          <div class="stat-sub" style="color:var(--amber)" id="fin-pendente-sub">Carregando...</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Em atraso</div>
-          <div class="stat-value" style="font-size:22px;color:var(--rose)">R$ 870</div>
-          <div class="stat-sub" style="color:var(--rose)">3 pacientes</div>
+          <div class="stat-label">Inadimplentes</div>
+          <div class="stat-value" style="font-size:22px;color:var(--rose)" id="fin-inadimpl">—</div>
+          <div class="stat-sub" style="color:var(--rose)" id="fin-inadimpl-sub">Carregando...</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Ticket médio</div>
-          <div class="stat-value" style="font-size:22px">R$ 180</div>
+          <div class="stat-value" style="font-size:22px" id="fin-ticket">—</div>
           <div class="stat-sub" style="color:var(--text-soft)">por sessão</div>
         </div>
       </div>
       <div class="card">
         <div class="card-head">
           <span class="card-title">Histórico de cobranças</span>
-          <button class="topbar-btn" onclick="sendQ('Me ajude a redigir uma mensagem de cobrança gentil para Lucas Menezes')">✉ Redigir cobrança com IA</button>
+          <div style="display:flex;gap:8px;">
+          <button class="topbar-btn" onclick="abrirModalCobranca()">💚 Gerar cobrança Pix</button>
+          <button class="topbar-btn" onclick="sendQ('Me ajude a redigir uma mensagem de cobrança gentil para os pacientes inadimplentes')">✉ Redigir com IA</button>
+        </div>
         </div>
         <div class="fin-table">
           <table>
@@ -1051,67 +1060,118 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
     </div>
   </div>
 
+
+  <!-- PERFIL -->
+  <div class="panel" id="perfil-panel">
+    <div style="display:flex;flex-direction:column;gap:20px;flex:1;overflow-y:auto;padding:28px;">
+
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 32px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-family:var(--font-serif);font-size:22px;font-weight:600;color:var(--text)">Perfil da Clínica</div>
+          <div style="font-size:13px;color:var(--text-mid);margin-top:4px">Personalize como o Cláudio representa sua clínica</div>
+        </div>
+        <div style="width:60px;height:60px;border-radius:50%;background:var(--sage-light);display:flex;align-items:center;justify-content:center;font-size:26px">🏥</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:22px;">
+          <div style="font-family:var(--font-serif);font-size:15px;font-weight:600;margin-bottom:16px;">Dados da Clínica</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Nome da clínica</label>
+              <input id="pf-nome-clinica" type="text" placeholder="Ex: Clínica Bem Estar" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Especialidade</label>
+              <input id="pf-especialidade" type="text" placeholder="Ex: Psicologia Clínica" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Endereço</label>
+              <input id="pf-endereco" type="text" placeholder="Rua, número, cidade" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Valor padrão da sessão (R$)</label>
+              <input id="pf-valor-padrao" type="number" placeholder="180" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:22px;">
+          <div style="font-family:var(--font-serif);font-size:15px;font-weight:600;margin-bottom:16px;">Dados do Profissional</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Nome completo</label>
+              <input id="pf-nome-prof" type="text" placeholder="Ex: Dra. Ana Silva" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">CRP</label>
+              <input id="pf-crp" type="text" placeholder="Ex: 06/12345" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Telefone</label>
+              <input id="pf-telefone" type="text" placeholder="(00) 00000-0000" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">E-mail profissional</label>
+              <input id="pf-email" type="email" placeholder="contato@clinica.com.br" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:22px;">
+        <div style="font-family:var(--font-serif);font-size:15px;font-weight:600;margin-bottom:12px;">Bio / Apresentação</div>
+        <textarea id="pf-bio" rows="3" placeholder="Breve descrição da sua abordagem terapêutica..." style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;resize:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:22px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="font-family:var(--font-serif);font-size:15px;font-weight:600;">💚 Dados para Recebimento via Pix</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Tipo de chave Pix</label>
+            <select id="pf-pix-tipo" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;background:#FDFCFA;">
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+              <option value="email">E-mail</option>
+              <option value="telefone">Telefone</option>
+              <option value="aleatoria">Chave aleatória</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Chave Pix</label>
+            <input id="pf-pix-chave" type="text" placeholder="Sua chave Pix" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Nome do favorecido (como aparece no Pix)</label>
+            <input id="pf-pix-nome" type="text" placeholder="Nome completo ou da clínica" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Banco</label>
+            <input id="pf-pix-banco" type="text" placeholder="Ex: Nubank, Itaú, Inter..." style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:var(--sage-light);border-radius:8px;font-size:12px;color:var(--sage);">
+          💡 Essas informações serão usadas para gerar mensagens de cobrança automáticas com os dados do Pix incluídos.
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <div id="pf-status" style="font-size:12.5px;color:var(--sage);align-self:center;"></div>
+        <button onclick="salvarPerfil()" style="padding:11px 28px;border:none;border-radius:8px;background:var(--sage);font-family:var(--font-body);font-size:13.5px;font-weight:600;color:#fff;cursor:pointer;">Salvar Perfil</button>
+      </div>
+
+    </div>
+  </div>
+
 </main>
 </div>
 
 <script>
-// ── DATA ──
-const patients = [
-  {name:"Marina Alves",initials:"MA",col:"sage",since:"Mar 2024",sessions:24,next:"Hoje 09h",status:"ok",pay:"Em dia"},
-  {name:"Pedro Carvalho",initials:"PC",col:"lavender",since:"Mai 2025",sessions:2,next:"Hoje 11h",status:"new",pay:"Em dia"},
-  {name:"Camila Ferreira",initials:"CF",col:"amber",since:"Jan 2025",sessions:18,next:"Hoje 14h",status:"ok",pay:"Em dia"},
-  {name:"Bruno Nascimento",initials:"BN",col:"rose",since:"Fev 2025",sessions:14,next:"Hoje 16h30",status:"warn",pay:"Pendente"},
-  {name:"Lucas Menezes",initials:"LM",col:"rose",since:"Nov 2024",sessions:20,next:"Ter 10h",status:"late",pay:"Atrasado"},
-  {name:"Ana Beatriz",initials:"AB",col:"sage",since:"Abr 2025",sessions:8,next:"Qua 09h",status:"ok",pay:"Em dia"},
-  {name:"Rafael Lima",initials:"RL",col:"lavender",since:"Dez 2024",sessions:16,next:"Qui 11h",status:"ok",pay:"Em dia"},
-  {name:"Juliana Ramos",initials:"JR",col:"amber",since:"Mar 2025",sessions:10,next:"Sex 14h",status:"ok",pay:"Em dia"},
-];
-
-const cols = {
-  sage:     ["var(--sage-light)","var(--sage)"],
-  lavender: ["var(--lav-light)","var(--lavender)"],
-  amber:    ["var(--amber-light)","var(--amber)"],
-  rose:     ["var(--rose-light)","var(--rose)"],
-};
-
-const statusLabel = {ok:"Ativo",new:"Novo",warn:"Atenção",late:"Inadimpl."};
-const statusStyle = {
-  ok:`background:var(--sage-light);color:var(--sage)`,
-  new:`background:var(--lav-light);color:var(--lavender)`,
-  warn:`background:var(--amber-light);color:var(--amber)`,
-  late:`background:var(--rose-light);color:var(--rose)`,
-};
-
-const finRows = [
-  {patient:"Lucas Menezes",date:"28/05",value:"R$ 180",due:"28/05",status:"late"},
-  {patient:"Fernanda Costa",date:"30/05",value:"R$ 180",due:"30/05",status:"late"},
-  {patient:"Bruno Nascimento",date:"31/05",value:"R$ 180",due:"04/06",status:"warn"},
-  {patient:"Marina Alves",date:"04/06",value:"R$ 180",due:"04/06",status:"ok"},
-  {patient:"Rafael Lima",date:"03/06",value:"R$ 180",due:"05/06",status:"ok"},
-  {patient:"Camila Ferreira",date:"04/06",value:"R$ 180",due:"06/06",status:"pending"},
-];
-
-const finStatus = {
-  late:`background:var(--rose-light);color:var(--rose)`,
-  warn:`background:var(--amber-light);color:var(--amber)`,
-  ok:`background:var(--sage-light);color:var(--sage)`,
-  pending:`background:var(--lav-light);color:var(--lavender)`,
-};
-
-const finLabel = {late:"Vencido",warn:"A vencer",ok:"Pago",pending:"Pendente"};
-
-const days = ["Seg\n02","Ter\n03","Qua\n04","Qui\n05","Sex\n06"];
-const dayNames = ["Seg","Ter","Qua","Qui","Sex"];
-const dayNums  = ["02","03","04","05","06"];
-
-const scheduleDay = [
-  {time:"09:00",name:"Marina Alves",type:"Sessão individual · 50 min",col:"sage"},
-  {time:"11:00",name:"Pedro Carvalho",type:"Avaliação inicial · 1h",col:"lavender"},
-  {time:""},
-  {time:"14:00",name:"Camila Ferreira",type:"Sessão individual · 50 min",col:"amber"},
-  {time:"15:30",name:"",type:"",col:""},
-  {time:"16:30",name:"Bruno Nascimento",type:"Sessão individual · 50 min",col:"rose"},
-];
+// ── DATA (tudo vem do Supabase) ──
 
 // ── RENDER ──
 function renderPatients() {
@@ -1228,6 +1288,7 @@ async function loadAgendaDia(dateStr) {
         </div>
         <span class="tag-sm" style="background:${bg};color:${fg};margin-right:8px">${statusLabel[st]||st}</span>
         <div class="slot-actions">
+          <div class="icon-btn" title="Lembrete WhatsApp" onclick="lembreteWhatsApp('${s.pacientes?.nome||''}', '${hora}', '${s.id}')">📱</div>
           <div class="icon-btn" title="Marcar como pago" onclick="marcarPago('${s.id}')" style="${s.pago?'background:var(--sage-light);border-color:var(--sage)':''}">💰</div>
           <div class="icon-btn" title="Cancelar sessão" onclick="cancelarSessao('${s.id}')">🗑</div>
         </div>
@@ -1301,16 +1362,72 @@ async function salvarNovaSessao() {
   loadDashboard();
 }
 
-function renderFin() {
-  document.getElementById('fin-body').innerHTML = finRows.map(r => `
-    <tr>
-      <td style="font-weight:500">${r.patient}</td>
-      <td style="color:var(--text-mid)">${r.date}</td>
-      <td style="font-weight:600">${r.value}</td>
-      <td style="color:var(--text-mid)">${r.due}</td>
-      <td><span class="status-pill" style="${finStatus[r.status]}">${finLabel[r.status]}</span></td>
-      <td><button class="icon-btn" onclick="sendQ('Redigir cobrança para ${r.patient}')">✉</button></td>
-    </tr>`).join('');
+async function loadFinStats() {
+  const mes = new Date();
+  const mesInicio = new Date(mes.getFullYear(), mes.getMonth(), 1).toISOString();
+  const mesFim = new Date(mes.getFullYear(), mes.getMonth()+1, 0).toISOString();
+
+  const { data: sessoes } = await sbClient.from('sessoes').select('valor, pago, status').gte('data_hora', mesInicio).lte('data_hora', mesFim);
+  const { data: pacientes } = await sbClient.from('pacientes').select('status_pagamento, valor_sessao');
+
+  const pagas = sessoes?.filter(s => s.pago) || [];
+  const pendentes = sessoes?.filter(s => !s.pago && s.status !== 'cancelada') || [];
+  const inadimpl = pacientes?.filter(p => p.status_pagamento === 'atrasado') || [];
+
+  const recebido = pagas.reduce((a, s) => a + (parseFloat(s.valor)||0), 0);
+  const apagar = pendentes.reduce((a, s) => a + (parseFloat(s.valor)||0), 0);
+  const valorInadimpl = inadimpl.reduce((a, p) => a + (parseFloat(p.valor_sessao)||0), 0);
+  const ticket = pagas.length > 0 ? recebido / pagas.length : 0;
+
+  document.getElementById('fin-recebido').textContent = 'R$ ' + recebido.toFixed(0);
+  document.getElementById('fin-recebido-sub').textContent = pagas.length + ' sessões pagas';
+  document.getElementById('fin-pendente').textContent = 'R$ ' + apagar.toFixed(0);
+  document.getElementById('fin-pendente-sub').textContent = pendentes.length + ' sessões pendentes';
+  document.getElementById('fin-inadimpl').textContent = inadimpl.length;
+  document.getElementById('fin-inadimpl-sub').textContent = inadimpl.length > 0 ? 'R$ ' + valorInadimpl.toFixed(0) + ' em aberto' : 'Tudo em dia ✓';
+  document.getElementById('fin-ticket').textContent = 'R$ ' + ticket.toFixed(0);
+}
+
+async function renderFin() {
+  const tbody = document.getElementById('fin-body');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-soft)">Carregando...</td></tr>';
+
+  const { data: sessoes, error } = await sbClient
+    .from('sessoes')
+    .select('*, pacientes(nome)')
+    .order('data_hora', { ascending: false })
+    .limit(30);
+
+  if (error || !sessoes || sessoes.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-soft)">Nenhuma sessão registrada ainda</td></tr>';
+    return;
+  }
+
+  const finStatus = {
+    realizada: 'background:var(--sage-light);color:var(--sage)',
+    agendada:  'background:var(--lav-light);color:var(--lavender)',
+    cancelada: 'background:var(--rose-light);color:var(--rose)',
+  };
+  const finLabel = { realizada:'Pago', agendada:'Pendente', cancelada:'Cancelada' };
+
+  tbody.innerHTML = sessoes.map(s => {
+    const nome = s.pacientes?.nome || '—';
+    const data = new Date(s.data_hora).toLocaleDateString('pt-BR');
+    const st = s.pago ? 'realizada' : (s.status || 'agendada');
+    const stStyle = finStatus[st] || finStatus.agendada;
+    const stLabel = s.pago ? 'Pago' : (finLabel[st] || 'Pendente');
+    return `<tr>
+      <td style="font-weight:500">${nome}</td>
+      <td style="color:var(--text-mid)">${data}</td>
+      <td style="font-weight:600">R$ ${s.valor || 0}</td>
+      <td style="color:var(--text-mid)">${s.duracao_min || 50} min</td>
+      <td><span class="status-pill" style="${stStyle}">${stLabel}</span></td>
+      <td style="display:flex;gap:4px;">
+        ${!s.pago ? `<button class="icon-btn" title="Marcar pago" onclick="marcarPago('${s.id}')">💰</button>` : ''}
+        <button class="icon-btn" title="Cobrar" onclick="sendQ('Redigir cobrança gentil para ${nome}')">✉</button>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 // ── NAVIGATION ──
@@ -1319,7 +1436,9 @@ function switchPanel(id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(id+'-panel').classList.add('active');
   document.querySelector(`[data-panel="${id}"]`)?.classList.add('active');
-  const titles = {overview:'Visão Geral',chat:'Chat com Cláudio',agenda:'Agenda',pacientes:'Pacientes',financeiro:'Financeiro'};
+  const titles = {overview:'Visão Geral',chat:'Chat com Cláudio',agenda:'Agenda',pacientes:'Pacientes',financeiro:'Financeiro',perfil:'Perfil da Clínica'};
+  if (id === 'financeiro') { renderFin(); loadFinStats(); }
+  if (id === 'agenda') { renderDays(); renderTimeline(); }
   document.getElementById('topbar-title').textContent = titles[id] || id;
 }
 
@@ -1360,6 +1479,64 @@ function showTyping() {
 
 function hideTyping() { document.getElementById('typing')?.remove(); }
 
+async function buildContextoReal() {
+  try {
+    const hoje = new Date().toISOString().split('T')[0];
+    const mesInicio = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const mesFim = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).toISOString();
+
+    const [{ data: pacientes }, { data: sessoesHoje }, { data: sessoesMes }] = await Promise.all([
+      sbClient.from('pacientes').select('nome, telefone, email, valor_sessao, status_pagamento, observacoes').order('nome'),
+      sbClient.from('sessoes').select('data_hora, duracao_min, valor, pago, status, pacientes(nome)').gte('data_hora', hoje + 'T00:00:00').lte('data_hora', hoje + 'T23:59:59').order('data_hora'),
+      sbClient.from('sessoes').select('valor, pago, status').gte('data_hora', mesInicio).lte('data_hora', mesFim),
+    ]);
+
+    const userName = currentUser?.user_metadata?.full_name || currentUser?.email || 'profissional';
+    const totalPacientes = pacientes?.length || 0;
+    const inadimplentes = pacientes?.filter(p => p.status_pagamento === 'atrasado') || [];
+    const pendentes = pacientes?.filter(p => p.status_pagamento === 'pendente') || [];
+    const recebido = sessoesMes?.filter(s => s.pago).reduce((a, s) => a + (parseFloat(s.valor)||0), 0) || 0;
+    const aPagar = sessoesMes?.filter(s => !s.pago && s.status !== 'cancelada').reduce((a, s) => a + (parseFloat(s.valor)||0), 0) || 0;
+
+    const agendaHoje = sessoesHoje?.length > 0
+      ? sessoesHoje.map(s => {
+          const h = new Date(s.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+          return `${h} — ${s.pacientes?.nome || 'Paciente'} (${s.duracao_min||50}min · R$${s.valor||0} · ${s.pago ? 'pago' : s.status})`;
+        }).join('\n')
+      : 'Nenhuma sessão agendada para hoje';
+
+    const listaPacientes = pacientes?.length > 0
+      ? pacientes.map(p => `- ${p.nome} | Tel: ${p.telefone||'—'} | Sessão: R$${p.valor_sessao||0} | Status: ${p.status_pagamento||'em_dia'}${p.observacoes ? ' | Obs: '+p.observacoes : ''}`).join('\n')
+      : 'Nenhum paciente cadastrado ainda';
+
+    const listaInadimpl = inadimplentes.length > 0
+      ? inadimplentes.map(p => `- ${p.nome} (R$${p.valor_sessao||0})`).join('\n')
+      : 'Nenhum';
+
+    return `Você é Cláudio, assistente virtual de clínica de psicologia. Você auxilia ${userName} com a gestão da clínica.
+
+=== DADOS REAIS DA CLÍNICA (atualizado agora) ===
+
+PACIENTES (${totalPacientes} total):
+${listaPacientes}
+
+AGENDA DE HOJE:
+${agendaHoje}
+
+FINANCEIRO DO MÊS:
+- Recebido: R$ ${recebido.toFixed(2)}
+- A receber: R$ ${aPagar.toFixed(2)}
+- Inadimplentes (${inadimplentes.length}): ${listaInadimpl}
+- Pendentes (${pendentes.length}): ${pendentes.map(p=>p.nome).join(', ') || 'Nenhum'}
+
+=== FIM DOS DADOS ===
+
+Seu tom: acolhedor, profissional, empático e prático. Respeite o sigilo dos pacientes. Quando redigir cobranças, seja gentil e preservador do vínculo terapêutico. Responda sempre em português do Brasil. Use os dados reais acima nas respostas.`;
+  } catch(e) {
+    return `Você é Cláudio, assistente virtual de clínica de psicologia. Responda em português do Brasil de forma acolhedora e profissional.`;
+  }
+}
+
 async function sendMsg() {
   const el = document.getElementById('msg-input');
   const text = el.value.trim();
@@ -1373,6 +1550,8 @@ async function sendMsg() {
   showTyping();
 
   try {
+    const systemPrompt = await buildContextoReal();
+
     const res = await fetch('https://fbltenrfhruojcxxrrwh.supabase.co/functions/v1/swift-endpoint', {
       method:'POST',
       headers:{
@@ -1383,15 +1562,7 @@ async function sendMsg() {
       body: JSON.stringify({
         model:'claude-sonnet-4-5',
         max_tokens:1000,
-        system:`Você é Cláudio, assistente virtual de uma clínica de psicologia. Você auxilia a Dra. Renata, psicóloga, com a gestão diária da clínica.
-
-Contexto atual da clínica:
-- 12 pacientes ativos
-- Agenda de hoje: Marina Alves (09h), Pedro Carvalho (11h), Camila Ferreira (14h), Bruno Nascimento (16h30 — sem confirmação)
-- Inadimplentes: Lucas Menezes (R$180 · vencido há 7 dias), Fernanda Costa (R$180 · vencido há 5 dias), Bruno Nascimento (R$180 · a vencer)
-- Receita de junho: R$3.240 recebidos, R$1.560 pendentes, R$870 em atraso
-
-Seu tom é: acolhedor, profissional, empático e prático. Você entende o contexto de saúde mental e respeita a relação terapeuta-paciente. Quando redigir mensagens de cobrança, seja gentil e preservador do vínculo terapêutico. Responda sempre em português do Brasil. Seja conciso e direto.`,
+        system: systemPrompt,
         messages: history
       })
     });
@@ -1496,19 +1667,30 @@ function enterApp(user) {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   const name = user.user_metadata?.full_name || user.email;
-  document.querySelector('.user-name').textContent = name;
-  document.querySelector('.user-role').textContent = user.email;
+  const primeiroNome = name.split(' ')[0];
+
+  // Update sidebar
+  document.getElementById('sidebar-nome').textContent = name;
+  document.getElementById('sidebar-role').textContent = user.email;
+  document.getElementById('sidebar-clinica').textContent = '🌿 Minha Clínica';
 
   // Greeting
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-  const primeiroNome = name.split(' ')[0];
   document.getElementById('dash-greeting').textContent = saudacao + ', ' + primeiroNome + '! 🌿';
+
+  // Update chat greeting with user name
+  const chatGreeting = document.querySelector('#chat-body .bubble');
+  if (chatGreeting) {
+    chatGreeting.innerHTML = `Olá, ${primeiroNome}! 🌿 Sou o Cláudio, seu assistente de clínica.<br><br>Posso te ajudar com a agenda, lembretes de sessão, cobranças, histórico de pacientes e muito mais. Como posso te ajudar agora?`;
+  }
 
   loadPacientes();
   loadDashboard();
   renderDays();
   renderTimeline();
+  loadPerfil();
+  verificarOnboarding(user);
 }
 
 async function loadDashboard() {
@@ -1629,12 +1811,10 @@ function doLogout() {
 // Check session on load
 checkSession();
 
-// ── INIT ──
-renderDays();
-renderTimeline();
-renderFin();
 
-// ── SUPABASE PATIENTS ──
+// ── BUSCA DE PACIENTES ──
+let allPacientes = [];
+
 async function loadPacientes() {
   if (!sbClient) return;
   const { data, error } = await sbClient
@@ -1642,8 +1822,508 @@ async function loadPacientes() {
     .select('*')
     .order('nome');
   if (error) { console.error('Erro ao carregar pacientes:', error); return; }
-  renderPacientesDB(data || []);
+  allPacientes = data || [];
+  renderPacientesDB(allPacientes);
 }
+
+function filtrarPacientes(q) {
+  if (!q) { renderPacientesDB(allPacientes); return; }
+  const filtered = allPacientes.filter(p => 
+    p.nome.toLowerCase().includes(q.toLowerCase()) ||
+    (p.email && p.email.toLowerCase().includes(q.toLowerCase())) ||
+    (p.telefone && p.telefone.includes(q))
+  );
+  renderPacientesDB(filtered);
+}
+
+// ── MODELO CSV ──
+function baixarModelo() {
+  const csv = 'nome,telefone,email,data_nascimento,valor_sessao,observacoes\n' +
+    'João Silva,(11) 99999-9999,joao@email.com,1990-05-15,180,Paciente de ansiedade\n' +
+    'Maria Souza,(21) 88888-8888,maria@email.com,1985-03-20,200,\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'modelo_pacientes_claudio.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── IMPORTAÇÃO ──
+let dadosImport = [];
+
+function abrirModalImport() {
+  dadosImport = [];
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('import-drop').style.display = 'flex';
+  document.getElementById('import-file').value = '';
+  document.getElementById('btn-confirmar-import').style.display = 'none';
+  document.getElementById('import-status').textContent = '';
+  document.getElementById('modal-import').style.display = 'flex';
+}
+
+function fecharModalImport() {
+  document.getElementById('modal-import').style.display = 'none';
+}
+
+function handleImportFile(e) {
+  const file = e.target.files[0] || (e.dataTransfer && e.dataTransfer.files[0]);
+  if (!file) return;
+  processarArquivo(file);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('import-drop').style.borderColor = '#EAE5DE';
+  const file = e.dataTransfer.files[0];
+  if (file) processarArquivo(file);
+}
+
+function processarArquivo(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let data;
+      if (file.name.endsWith('.csv')) {
+        // Parse CSV
+        const text = e.target.result;
+        const lines = text.split('\n').filter(l => l.trim());
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        data = lines.slice(1).map(line => {
+          const vals = line.split(',');
+          const obj = {};
+          headers.forEach((h, i) => obj[h] = (vals[i]||'').trim().replace(/"/g,''));
+          return obj;
+        }).filter(r => r.nome);
+      } else {
+        // Parse Excel
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        // Normalize keys to lowercase
+        data = data.map(row => {
+          const normalized = {};
+          Object.keys(row).forEach(k => normalized[k.toLowerCase().trim()] = String(row[k]).trim());
+          return normalized;
+        }).filter(r => r.nome);
+      }
+
+      dadosImport = data;
+      mostrarPreview(data);
+    } catch(err) {
+      document.getElementById('import-status').textContent = '⚠️ Erro ao ler arquivo: ' + err.message;
+    }
+  };
+  if (file.name.endsWith('.csv')) reader.readAsText(file, 'UTF-8');
+  else reader.readAsArrayBuffer(file);
+}
+
+function mostrarPreview(data) {
+  if (!data.length) {
+    document.getElementById('import-status').textContent = '⚠️ Nenhum paciente encontrado no arquivo.';
+    return;
+  }
+
+  document.getElementById('import-drop').style.display = 'none';
+  document.getElementById('import-status').textContent = '';
+
+  const preview = document.getElementById('import-preview');
+  preview.style.display = 'block';
+
+  const campos = ['nome','telefone','email','data_nascimento','valor_sessao'];
+  
+  preview.innerHTML = `
+    <div style="font-size:13px;font-weight:600;color:var(--sage);margin-bottom:10px;">
+      ✅ ${data.length} paciente${data.length>1?'s':''} encontrado${data.length>1?'s':''}
+    </div>
+    <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+        <thead>
+          <tr style="background:var(--cream);">
+            <th style="padding:8px 10px;text-align:left;color:var(--text-soft);font-weight:600;border-bottom:1px solid var(--border);">Nome</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--text-soft);font-weight:600;border-bottom:1px solid var(--border);">Telefone</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--text-soft);font-weight:600;border-bottom:1px solid var(--border);">E-mail</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--text-soft);font-weight:600;border-bottom:1px solid var(--border);">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.slice(0,10).map((p,i) => `
+            <tr style="border-bottom:1px solid var(--border);${i%2===0?'':'background:var(--cream)'}">
+              <td style="padding:7px 10px;font-weight:500;color:var(--text)">${p.nome||'—'}</td>
+              <td style="padding:7px 10px;color:var(--text-mid)">${p.telefone||'—'}</td>
+              <td style="padding:7px 10px;color:var(--text-mid)">${p.email||'—'}</td>
+              <td style="padding:7px 10px;color:var(--text-mid)">R$ ${p.valor_sessao||'0'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    ${data.length > 10 ? `<div style="font-size:11px;color:var(--text-soft);margin-top:6px;text-align:center">+ ${data.length-10} pacientes não exibidos na prévia</div>` : ''}
+  `;
+
+  document.getElementById('btn-confirmar-import').style.display = 'block';
+}
+
+async function confirmarImport() {
+  if (!dadosImport.length) return;
+  const btn = document.getElementById('btn-confirmar-import');
+  btn.textContent = 'Importando...'; btn.disabled = true;
+
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  const registros = dadosImport.map(p => ({
+    user_id: user.id,
+    nome: p.nome || '',
+    telefone: p.telefone || '',
+    email: p.email || '',
+    data_nascimento: p.data_nascimento || null,
+    valor_sessao: parseFloat(p.valor_sessao) || 0,
+    observacoes: p.observacoes || '',
+    status_pagamento: 'em_dia',
+  })).filter(r => r.nome);
+
+  const { error } = await sbClient.from('pacientes').insert(registros);
+
+  btn.textContent = 'Importar Pacientes'; btn.disabled = false;
+
+  if (error) {
+    document.getElementById('import-status').textContent = '⚠️ Erro: ' + error.message;
+    return;
+  }
+
+  fecharModalImport();
+  loadPacientes();
+  alert(`✅ ${registros.length} pacientes importados com sucesso!`);
+}
+
+
+// ── PERFIL DA CLÍNICA ──
+async function loadPerfil() {
+  const { data } = await sbClient.from('perfil_clinica').select('*').single();
+  if (!data) return;
+
+  document.getElementById('pf-nome-clinica').value = data.nome_clinica || '';
+  document.getElementById('pf-especialidade').value = data.especialidade || '';
+  document.getElementById('pf-endereco').value = data.endereco || '';
+  document.getElementById('pf-valor-padrao').value = data.valor_sessao_padrao || '';
+  document.getElementById('pf-nome-prof').value = data.nome_profissional || '';
+  document.getElementById('pf-crp').value = data.crp || '';
+  document.getElementById('pf-telefone').value = data.telefone || '';
+  document.getElementById('pf-email').value = data.email || '';
+  document.getElementById('pf-bio').value = data.bio || '';
+  if (document.getElementById('pf-pix-tipo')) document.getElementById('pf-pix-tipo').value = data.pix_tipo || 'cpf';
+  if (document.getElementById('pf-pix-chave')) document.getElementById('pf-pix-chave').value = data.pix_chave || '';
+  if (document.getElementById('pf-pix-nome')) document.getElementById('pf-pix-nome').value = data.pix_nome || '';
+  if (document.getElementById('pf-pix-banco')) document.getElementById('pf-pix-banco').value = data.pix_banco || '';
+
+  // Update sidebar with profile data
+  if (data.nome_clinica) {
+    document.getElementById('sidebar-clinica').textContent = '🌿 ' + data.nome_clinica;
+  }
+  if (data.nome_profissional) {
+    document.getElementById('sidebar-nome').textContent = data.nome_profissional;
+  }
+  if (data.crp) {
+    const esp = data.especialidade || 'Psicóloga';
+    document.getElementById('sidebar-role').textContent = esp + ' — CRP ' + data.crp;
+  } else if (data.especialidade) {
+    document.getElementById('sidebar-role').textContent = data.especialidade;
+  }
+}
+
+async function salvarPerfil() {
+  const { data: { user } } = await sbClient.auth.getUser();
+  const status = document.getElementById('pf-status');
+  status.textContent = 'Salvando...';
+
+  const perfil = {
+    user_id: user.id,
+    nome_clinica: document.getElementById('pf-nome-clinica').value.trim(),
+    especialidade: document.getElementById('pf-especialidade').value.trim(),
+    endereco: document.getElementById('pf-endereco').value.trim(),
+    valor_sessao_padrao: parseFloat(document.getElementById('pf-valor-padrao').value) || 0,
+    nome_profissional: document.getElementById('pf-nome-prof').value.trim(),
+    crp: document.getElementById('pf-crp').value.trim(),
+    telefone: document.getElementById('pf-telefone').value.trim(),
+    email: document.getElementById('pf-email').value.trim(),
+    bio: document.getElementById('pf-bio').value.trim(),
+    pix_tipo: document.getElementById('pf-pix-tipo').value,
+    pix_chave: document.getElementById('pf-pix-chave').value.trim(),
+    pix_nome: document.getElementById('pf-pix-nome').value.trim(),
+    pix_banco: document.getElementById('pf-pix-banco').value.trim(),
+  };
+
+  const { error } = await sbClient.from('perfil_clinica').upsert(perfil, { onConflict: 'user_id' });
+
+  if (error) {
+    status.textContent = '⚠️ Erro ao salvar.';
+    status.style.color = 'var(--rose)';
+    return;
+  }
+
+  status.textContent = '✅ Perfil salvo com sucesso!';
+  status.style.color = 'var(--sage)';
+  setTimeout(() => status.textContent = '', 3000);
+
+  // Update sidebar with new data
+  if (perfil.nome_clinica) document.getElementById('sidebar-clinica').textContent = '🌿 ' + perfil.nome_clinica;
+  if (perfil.nome_profissional) document.getElementById('sidebar-nome').textContent = perfil.nome_profissional;
+  if (perfil.crp) document.getElementById('sidebar-role').textContent = (perfil.especialidade || 'Psicóloga') + ' — CRP ' + perfil.crp;
+}
+
+
+// ── COBRANÇA PIX ──
+async function abrirModalCobranca() {
+  // Load pix data
+  const { data: perfil } = await sbClient.from('perfil_clinica').select('pix_chave, pix_tipo, pix_nome, pix_banco, nome_profissional, nome_clinica').single();
+  const { data: inadimplentes } = await sbClient.from('pacientes').select('id, nome, valor_sessao').eq('status_pagamento', 'atrasado');
+  const { data: pendentes } = await sbClient.from('pacientes').select('id, nome, valor_sessao').eq('status_pagamento', 'pendente');
+
+  const todos = [...(inadimplentes||[]), ...(pendentes||[])];
+  const select = document.getElementById('cob-paciente');
+  select.innerHTML = '<option value="">Selecione o paciente...</option>' +
+    todos.map(p => `<option value="${p.id}" data-valor="${p.valor_sessao}">${p.nome} — R$ ${p.valor_sessao||0}</option>`).join('');
+
+  // Pre-fill pix
+  if (perfil) {
+    document.getElementById('cob-pix-chave').value = perfil.pix_chave || 'Não configurado — vá em Perfil da Clínica';
+    document.getElementById('cob-pix-nome').value = perfil.pix_nome || perfil.nome_profissional || '';
+    document.getElementById('cob-pix-banco').value = perfil.pix_banco || '';
+  }
+
+  document.getElementById('cob-valor').value = '';
+  document.getElementById('cob-msg').value = '';
+  document.getElementById('modal-cobranca').style.display = 'flex';
+}
+
+function fecharModalCobranca() {
+  document.getElementById('modal-cobranca').style.display = 'none';
+}
+
+function gerarMsgCobranca() {
+  const select = document.getElementById('cob-paciente');
+  const nome = select.options[select.selectedIndex]?.text?.split(' —')[0] || 'paciente';
+  const valor = document.getElementById('cob-valor').value || select.options[select.selectedIndex]?.dataset?.valor || '0';
+  const chave = document.getElementById('cob-pix-chave').value;
+  const pixNome = document.getElementById('cob-pix-nome').value;
+  const banco = document.getElementById('cob-pix-banco').value;
+
+  const msg = `Olá, ${nome}! 🌿
+
+Espero que esteja bem. Passando para lembrar sobre o valor referente à nossa sessão no valor de *R$ ${valor}*.
+
+Para realizar o pagamento via Pix:
+
+🔑 Chave Pix: *${chave}*
+👤 Favorecido: ${pixNome}
+🏦 Banco: ${banco}
+
+Qualquer dúvida, estou à disposição. Obrigada! 😊`;
+
+  document.getElementById('cob-msg').value = msg;
+}
+
+function copiarMsgCobranca() {
+  const msg = document.getElementById('cob-msg').value;
+  navigator.clipboard.writeText(msg);
+  const btn = document.getElementById('btn-copiar-cob');
+  btn.textContent = '✅ Copiado!';
+  setTimeout(() => btn.textContent = '📋 Copiar mensagem', 2000);
+}
+
+async function marcarPacientePago() {
+  const id = document.getElementById('cob-paciente').value;
+  if (!id) { alert('Selecione um paciente!'); return; }
+  await sbClient.from('pacientes').update({ status_pagamento: 'em_dia' }).eq('id', id);
+  fecharModalCobranca();
+  loadPacientes();
+  loadDashboard();
+  loadFinStats();
+  alert('✅ Paciente marcado como Em dia!');
+}
+
+
+// ── WHATSAPP ──
+async function enviarWhatsApp() {
+  const select = document.getElementById('cob-paciente');
+  const pacienteId = select.value;
+  if (!pacienteId) { alert('Selecione um paciente!'); return; }
+
+  // Get patient phone
+  const { data: pac } = await sbClient.from('pacientes').select('telefone, nome').eq('id', pacienteId).single();
+  const msg = document.getElementById('cob-msg').value;
+
+  if (!msg) { alert('Gere a mensagem primeiro!'); return; }
+
+  const telefone = formatarTelefone(pac?.telefone || '');
+  const msgEncoded = encodeURIComponent(msg);
+
+  if (telefone) {
+    window.open(`https://wa.me/55${telefone}?text=${msgEncoded}`, '_blank');
+  } else {
+    // No phone — open WhatsApp without number
+    window.open(`https://wa.me/?text=${msgEncoded}`, '_blank');
+    alert('Telefone do paciente não cadastrado. O WhatsApp abrirá sem destinatário — selecione o contato manualmente.');
+  }
+}
+
+async function lembreteWhatsApp(nomePaciente, hora, sessaoId) {
+  // Get patient phone from DB
+  const { data: sessao } = await sbClient
+    .from('sessoes')
+    .select('pacientes(nome, telefone), data_hora, valor')
+    .eq('id', sessaoId)
+    .single();
+
+  const { data: perfil } = await sbClient
+    .from('perfil_clinica')
+    .select('nome_profissional, nome_clinica, pix_chave, pix_nome')
+    .single();
+
+  const nome = sessao?.pacientes?.nome || nomePaciente;
+  const tel = formatarTelefone(sessao?.pacientes?.telefone || '');
+  const data = new Date(sessao?.data_hora).toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'});
+  const profissional = perfil?.nome_profissional || 'sua psicóloga';
+  const clinica = perfil?.nome_clinica || 'nossa clínica';
+
+  const msg = `Olá, ${nome}! 🌿
+
+Este é um lembrete da sua sessão:
+
+📅 *${data}*
+🕐 *${hora}*
+👩‍⚕️ ${profissional}
+🏥 ${clinica}
+
+Por favor, confirme sua presença respondendo esta mensagem.
+
+Caso precise remarcar, avise com antecedência. Até breve! 😊`;
+
+  const msgEncoded = encodeURIComponent(msg);
+
+  if (tel) {
+    window.open(`https://wa.me/55${tel}?text=${msgEncoded}`, '_blank');
+  } else {
+    window.open(`https://wa.me/?text=${msgEncoded}`, '_blank');
+    alert('Telefone do paciente não cadastrado. Selecione o contato manualmente no WhatsApp.');
+  }
+}
+
+function formatarTelefone(tel) {
+  if (!tel) return '';
+  // Remove everything except digits
+  return tel.replace(/\D/g, '');
+}
+
+// Add WhatsApp button to patient cards
+function adicionarBotaoWhatsApp(paciente) {
+  if (!paciente.telefone) return '';
+  const tel = paciente.telefone.replace(/\D/g, '');
+  const msg = encodeURIComponent(`Olá, ${paciente.nome}! 🌿 Entrando em contato da clínica.`);
+  return `<a href="https://wa.me/55${tel}?text=${msg}" target="_blank" style="
+    display:flex;align-items:center;justify-content:center;gap:4px;
+    padding:5px;border:1px solid #25D36644;border-radius:6px;
+    background:#f0fdf4;font-size:11px;color:#25D366;
+    cursor:pointer;text-decoration:none;font-weight:600;
+    transition:all .15s;flex:1;
+  " onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+    📱 WhatsApp
+  </a>`;
+}
+
+
+// ── ONBOARDING ──
+function obProximo(step) {
+  [1,2,3].forEach(i => {
+    document.getElementById('ob-step-' + i).style.display = i === step ? 'block' : 'none';
+    document.getElementById('ob-bar-' + i).style.background = i <= step ? 'var(--sage)' : 'var(--border)';
+  });
+}
+
+function obPularPix() {
+  obFinalizar(true);
+}
+
+async function obFinalizar(semPix = false) {
+  const nomeClinica = document.getElementById('ob-nome-clinica').value.trim();
+  const nomeProf = document.getElementById('ob-nome-prof').value.trim();
+
+  if (!nomeClinica || !nomeProf) {
+    obProximo(2);
+    alert('Preencha pelo menos o nome da clínica e seu nome!');
+    return;
+  }
+
+  const btn = document.getElementById('ob-btn-finalizar');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  const perfil = {
+    user_id: user.id,
+    nome_clinica: nomeClinica,
+    nome_profissional: nomeProf,
+    crp: document.getElementById('ob-crp').value.trim(),
+    especialidade: document.getElementById('ob-especialidade').value.trim(),
+    telefone: document.getElementById('ob-telefone').value.trim(),
+    valor_sessao_padrao: parseFloat(document.getElementById('ob-valor').value) || 0,
+    pix_tipo: semPix ? 'cpf' : document.getElementById('ob-pix-tipo').value,
+    pix_chave: semPix ? '' : document.getElementById('ob-pix-chave').value.trim(),
+    pix_nome: semPix ? '' : document.getElementById('ob-pix-nome').value.trim(),
+    pix_banco: semPix ? '' : document.getElementById('ob-pix-banco').value.trim(),
+  };
+
+  const { error } = await sbClient.from('perfil_clinica').upsert(perfil, { onConflict: 'user_id' });
+
+  btn.textContent = '✅ Entrar no Cláudio'; btn.disabled = false;
+
+  if (error) {
+    document.getElementById('ob-error').style.display = 'block';
+    document.getElementById('ob-error').textContent = 'Erro ao salvar: ' + error.message;
+    return;
+  }
+
+  // Update sidebar
+  document.getElementById('sidebar-clinica').textContent = '🌿 ' + nomeClinica;
+  document.getElementById('sidebar-nome').textContent = nomeProf;
+  if (perfil.crp) document.getElementById('sidebar-role').textContent = (perfil.especialidade||'Psicóloga') + ' — CRP ' + perfil.crp;
+
+  // Mark onboarding complete in localStorage
+  localStorage.setItem('ob_done_' + user.id, '1');
+
+  // Close modal
+  document.getElementById('modal-onboarding').style.display = 'none';
+
+  // Update chat greeting
+  const primeiroNome = nomeProf.split(' ')[0];
+  const chatGreeting = document.querySelector('#chat-body .bubble');
+  if (chatGreeting) {
+    chatGreeting.innerHTML = `Olá, ${primeiroNome}! 🌿 Sou o Cláudio, seu assistente de clínica.<br><br>Posso te ajudar com a agenda, lembretes de sessão, cobranças, histórico de pacientes e muito mais. Como posso te ajudar agora?`;
+  }
+}
+
+async function verificarOnboarding(user) {
+  // Check localStorage first (fast)
+  const done = localStorage.getItem('ob_done_' + user.id);
+  if (done) return;
+
+  // Check if profile already exists in DB
+  const { data } = await sbClient.from('perfil_clinica').select('nome_clinica').eq('user_id', user.id).single();
+  if (data?.nome_clinica) {
+    localStorage.setItem('ob_done_' + user.id, '1');
+    return;
+  }
+
+  // Show onboarding
+  document.getElementById('modal-onboarding').style.display = 'flex';
+}
+
+// ── INIT ──
+renderDays();
+renderTimeline();
+renderFin();
+
+// ── SUPABASE PATIENTS (ver loadPacientes abaixo) ──
 
 function renderPacientesDB(list) {
   const colList = ['sage','lavender','amber','rose'];
@@ -1693,7 +2373,8 @@ function renderPacientesDB(list) {
       <div class="p-row"><span class="p-row-label">Pagamento</span>
         <span class="tag-sm" style="${statusStyle[st]||statusStyle.em_dia};font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600">${statusLabel[st]||'Ativo'}</span>
       </div>
-      <div style="display:flex;gap:6px;margin-top:10px;">
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+        ${p.telefone ? `<a href="https://wa.me/55${p.telefone.replace(/\D/g,'')}" target="_blank" style="flex:1;padding:5px;border:1px solid #25D36644;border-radius:6px;background:#f0fdf4;font-size:11px;color:#25D366;cursor:pointer;font-family:var(--font-body);text-decoration:none;text-align:center;font-weight:600;">📱 WhatsApp</a>` : ''}
         <button onclick="editarPaciente('${p.id}')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--text-soft);cursor:pointer;font-family:var(--font-body)">✏️ Editar</button>
         <button onclick="excluirPaciente('${p.id}')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--rose);cursor:pointer;font-family:var(--font-body)">🗑 Excluir</button>
       </div>
@@ -1944,6 +2625,236 @@ async function salvarNovoPaciente() {
         <button onclick="fecharModalSessao()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
         <button id="btn-salvar-sessao" onclick="salvarNovaSessao()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#7B9E87;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:#fff;cursor:pointer;">Salvar Sessão</button>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL IMPORTAR PACIENTES -->
+<div id="modal-import" style="
+  display:none; position:fixed; inset:0; background:rgba(46,41,37,0.5);
+  z-index:9998; align-items:center; justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;
+">
+  <div style="background:#fff; border-radius:18px; padding:32px; width:100%; max-width:540px; margin:20px; box-shadow:0 8px 40px rgba(46,41,37,0.15);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+      <div style="font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:#2E2925;">Importar Pacientes</div>
+      <button onclick="fecharModalImport()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#A09488;">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-soft);margin-bottom:20px;">Aceita arquivos <strong>.xlsx</strong>, <strong>.xls</strong> e <strong>.csv</strong>. Baixe o modelo para garantir o formato correto.</div>
+
+    <!-- Drop zone -->
+    <div id="import-drop" style="
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      border:2px dashed #EAE5DE; border-radius:12px; padding:36px 20px;
+      cursor:pointer; transition:border .15s; text-align:center;
+    " 
+    onclick="document.getElementById('import-file').click()"
+    ondragover="event.preventDefault();this.style.borderColor='#7B9E87'"
+    ondragleave="this.style.borderColor='#EAE5DE'"
+    ondrop="handleDrop(event)">
+      <div style="font-size:36px;margin-bottom:10px">📂</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text)">Arraste o arquivo aqui</div>
+      <div style="font-size:12px;color:var(--text-soft);margin-top:4px">ou clique para selecionar</div>
+      <div style="font-size:11px;color:var(--text-soft);margin-top:8px">.xlsx · .xls · .csv</div>
+      <input type="file" id="import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(event)">
+    </div>
+
+    <!-- Preview -->
+    <div id="import-preview" style="display:none;margin-top:16px;"></div>
+
+    <!-- Status -->
+    <div id="import-status" style="font-size:12px;color:var(--rose);margin-top:10px;text-align:center;"></div>
+
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="fecharModalImport()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
+      <button onclick="baixarModelo()" style="flex:1;padding:11px;border:1px solid #7B9E87;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#7B9E87;cursor:pointer;">⬇ Baixar modelo</button>
+      <button id="btn-confirmar-import" onclick="confirmarImport()" style="display:none;flex:2;padding:11px;border:none;border-radius:8px;background:#7B9E87;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:600;color:#fff;cursor:pointer;">Importar Pacientes</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL COBRANÇA PIX -->
+<div id="modal-cobranca" style="
+  display:none; position:fixed; inset:0; background:rgba(46,41,37,0.5);
+  z-index:9998; align-items:center; justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;
+">
+  <div style="background:#fff; border-radius:18px; padding:32px; width:100%; max-width:500px; margin:20px; box-shadow:0 8px 40px rgba(46,41,37,0.15); max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+      <div style="font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; color:#2E2925;">💚 Cobrança via Pix</div>
+      <button onclick="fecharModalCobranca()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#A09488;">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Paciente</label>
+        <select id="cob-paciente" onchange="gerarMsgCobranca()" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;background:#FDFCFA;"></select>
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Valor (R$)</label>
+        <input id="cob-valor" type="number" placeholder="180" onchange="gerarMsgCobranca()" style="width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;">
+      </div>
+      <div style="background:var(--sage-light);border-radius:10px;padding:14px 16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--sage);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Dados do Pix</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:11.5px;color:var(--text-mid);width:60px;flex-shrink:0;">Chave:</span>
+            <input id="cob-pix-chave" type="text" style="flex:1;padding:6px 10px;border:1px solid var(--sage-mid);border-radius:6px;font-size:12.5px;font-weight:600;background:#fff;outline:none;">
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:11.5px;color:var(--text-mid);width:60px;flex-shrink:0;">Nome:</span>
+            <input id="cob-pix-nome" type="text" style="flex:1;padding:6px 10px;border:1px solid var(--sage-mid);border-radius:6px;font-size:12.5px;background:#fff;outline:none;">
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:11.5px;color:var(--text-mid);width:60px;flex-shrink:0;">Banco:</span>
+            <input id="cob-pix-banco" type="text" style="flex:1;padding:6px 10px;border:1px solid var(--sage-mid);border-radius:6px;font-size:12.5px;background:#fff;outline:none;">
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);">Mensagem gerada</label>
+          <button onclick="gerarMsgCobranca()" style="font-size:11px;color:var(--sage);background:none;border:none;cursor:pointer;font-weight:600;">🔄 Regenerar</button>
+        </div>
+        <textarea id="cob-msg" rows="8" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;color:var(--text);outline:none;resize:none;box-sizing:border-box;line-height:1.6;" placeholder="Selecione o paciente para gerar a mensagem..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="fecharModalCobranca()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-mid);cursor:pointer;">Fechar</button>
+        <button id="btn-whatsapp-cob" onclick="enviarWhatsApp()" style="flex:2;padding:10px;border:none;border-radius:8px;background:#25D366;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer;">📱 Enviar no WhatsApp</button>
+        <button id="btn-copiar-cob" onclick="copiarMsgCobranca()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-mid);cursor:pointer;">📋 Copiar</button>
+        <button onclick="marcarPacientePago()" style="flex:1;padding:10px;border:1px solid var(--sage);border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;color:var(--sage);cursor:pointer;">✅ Pago</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL ONBOARDING — primeira vez -->
+<div id="modal-onboarding" style="
+  display:none; position:fixed; inset:0; background:rgba(46,41,37,0.6);
+  z-index:10000; align-items:center; justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;
+">
+  <div style="background:#fff; border-radius:22px; width:100%; max-width:520px; margin:20px; box-shadow:0 12px 60px rgba(46,41,37,0.2); overflow:hidden;">
+
+    <!-- Steps indicator -->
+    <div style="display:flex; height:4px;">
+      <div id="ob-bar-1" style="flex:1; background:var(--sage); transition:all .3s;"></div>
+      <div id="ob-bar-2" style="flex:1; background:var(--border); transition:all .3s;"></div>
+      <div id="ob-bar-3" style="flex:1; background:var(--border); transition:all .3s;"></div>
+    </div>
+
+    <div style="padding:36px 36px 28px;">
+
+      <!-- STEP 1 — Boas-vindas -->
+      <div id="ob-step-1">
+        <div style="text-align:center;margin-bottom:28px;">
+          <div style="font-size:48px;margin-bottom:12px;">🌿</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:var(--text);margin-bottom:8px;">Bem-vinda ao Cláudio!</div>
+          <div style="font-size:14px;color:var(--text-mid);line-height:1.7;">Vamos configurar sua clínica em 3 passos rápidos para que o Cláudio já conheça você desde o primeiro dia.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px;">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--sage-light);border-radius:10px;">
+            <span style="font-size:18px;">🏥</span>
+            <div><div style="font-size:13px;font-weight:600;color:var(--text);">Nome da sua clínica</div><div style="font-size:11.5px;color:var(--text-soft);">Como você quer ser identificada</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--lav-light);border-radius:10px;">
+            <span style="font-size:18px;">👩‍⚕️</span>
+            <div><div style="font-size:13px;font-weight:600;color:var(--text);">Seus dados profissionais</div><div style="font-size:11.5px;color:var(--text-soft);">Nome, CRP e especialidade</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--amber-light);border-radius:10px;">
+            <span style="font-size:18px;">💚</span>
+            <div><div style="font-size:13px;font-weight:600;color:var(--text);">Sua chave Pix</div><div style="font-size:11.5px;color:var(--text-soft);">Para cobranças automáticas</div></div>
+          </div>
+        </div>
+        <button onclick="obProximo(2)" style="width:100%;padding:13px;border:none;border-radius:10px;background:var(--sage);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer;">Vamos começar →</button>
+      </div>
+
+      <!-- STEP 2 — Dados da clínica e profissional -->
+      <div id="ob-step-2" style="display:none;">
+        <div style="margin-bottom:22px;">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px;">Sua clínica</div>
+          <div style="font-size:13px;color:var(--text-mid);">Como o Cláudio vai te apresentar para seus pacientes</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:24px;">
+          <div>
+            <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Nome fantasia da clínica *</label>
+            <input id="ob-nome-clinica" type="text" placeholder="Ex: Espaço Mente Sã, Clínica Bem Estar..." style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Seu nome completo *</label>
+              <input id="ob-nome-prof" type="text" placeholder="Dra. Nome Sobrenome" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">CRP</label>
+              <input id="ob-crp" type="text" placeholder="00/00000" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Especialidade</label>
+              <input id="ob-especialidade" type="text" placeholder="Ex: Psicologia Clínica" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Valor padrão da sessão</label>
+              <input id="ob-valor" type="number" placeholder="180" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Telefone de contato</label>
+            <input id="ob-telefone" type="text" placeholder="(00) 00000-0000" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="obProximo(1)" style="padding:11px 20px;border:1px solid var(--border);border-radius:10px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text-mid);cursor:pointer;">← Voltar</button>
+          <button onclick="obProximo(3)" style="flex:1;padding:11px;border:none;border-radius:10px;background:var(--sage);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer;">Próximo →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 — Pix -->
+      <div id="ob-step-3" style="display:none;">
+        <div style="margin-bottom:22px;">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px;">💚 Dados para recebimento</div>
+          <div style="font-size:13px;color:var(--text-mid);">O Cláudio vai usar isso para gerar cobranças automáticas. Pode preencher depois se preferir.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:11px;margin-bottom:24px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Tipo de chave Pix</label>
+              <select id="ob-pix-tipo" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;background:#fff;">
+                <option value="cpf">CPF</option>
+                <option value="cnpj">CNPJ</option>
+                <option value="email">E-mail</option>
+                <option value="telefone">Telefone</option>
+                <option value="aleatoria">Chave aleatória</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Chave Pix</label>
+              <input id="ob-pix-chave" type="text" placeholder="Sua chave Pix" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Nome do favorecido</label>
+              <input id="ob-pix-nome" type="text" placeholder="Nome completo" style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11.5px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px;">Banco</label>
+              <input id="ob-pix-banco" type="text" placeholder="Ex: Nubank, Itaú..." style="width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+          </div>
+        </div>
+        <div id="ob-error" style="display:none;font-size:12px;color:var(--rose);margin-bottom:10px;text-align:center;"></div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="obProximo(2)" style="padding:11px 20px;border:1px solid var(--border);border-radius:10px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text-mid);cursor:pointer;">← Voltar</button>
+          <button onclick="obPularPix()" style="padding:11px 20px;border:1px solid var(--border);border-radius:10px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--text-mid);cursor:pointer;">Pular</button>
+          <button id="ob-btn-finalizar" onclick="obFinalizar()" style="flex:1;padding:11px;border:none;border-radius:10px;background:var(--sage);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer;">✅ Entrar no Cláudio</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
