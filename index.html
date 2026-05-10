@@ -879,6 +879,9 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
       <span class="nav-icon">💳</span> Financeiro
       <span class="nav-badge" id="badge-financeiro">0</span>
     </div>
+    <div class="nav-item" data-panel="prontuario">
+      <span class="nav-icon">📋</span> Prontuários
+    </div>
     <div class="nav-item" data-panel="perfil">
       <span class="nav-icon">⚙️</span> Perfil da Clínica
     </div>
@@ -1167,6 +1170,31 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
     </div>
   </div>
 
+
+  <!-- PRONTUÁRIOS -->
+  <div class="panel" id="prontuario-panel">
+    <div style="display:flex;flex-direction:column;gap:18px;flex:1;overflow-y:auto;padding:28px;">
+      <div class="search-bar">
+        <input class="search-input" id="search-pront" placeholder="🔍  Buscar paciente..." oninput="filtrarProntuarios(this.value)" style="flex:1;">
+        <button class="topbar-btn primary" onclick="gerarLinkPaciente()">🔗 Gerar link do paciente</button>
+      </div>
+
+      <div id="prontuario-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;"></div>
+
+      <!-- PRONTUÁRIO DETAIL -->
+      <div id="prontuario-detail" style="display:none;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <div id="pront-detail-nome" style="font-family:var(--font-serif);font-size:20px;font-weight:600;"></div>
+            <div id="pront-detail-sub" style="font-size:12px;color:var(--text-soft);margin-top:2px;"></div>
+          </div>
+          <button onclick="fecharProntuario()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--font-body);color:var(--text-mid);">← Voltar</button>
+        </div>
+        <div id="pront-detail-content"></div>
+      </div>
+    </div>
+  </div>
+
 </main>
 </div>
 
@@ -1436,9 +1464,10 @@ function switchPanel(id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(id+'-panel').classList.add('active');
   document.querySelector(`[data-panel="${id}"]`)?.classList.add('active');
-  const titles = {overview:'Visão Geral',chat:'Chat com Cláudio',agenda:'Agenda',pacientes:'Pacientes',financeiro:'Financeiro',perfil:'Perfil da Clínica'};
+  const titles = {overview:'Visão Geral',chat:'Chat com Cláudio',agenda:'Agenda',pacientes:'Pacientes',financeiro:'Financeiro',perfil:'Perfil da Clínica',prontuario:'Prontuários'};
   if (id === 'financeiro') { renderFin(); loadFinStats(); }
   if (id === 'agenda') { renderDays(); renderTimeline(); }
+  if (id === 'prontuario') { loadProntuarios(); }
   document.getElementById('topbar-title').textContent = titles[id] || id;
 }
 
@@ -1691,6 +1720,7 @@ function enterApp(user) {
   renderTimeline();
   loadPerfil();
   verificarOnboarding(user);
+  verificarTrial(user);
 }
 
 async function loadDashboard() {
@@ -2053,6 +2083,13 @@ async function salvarPerfil() {
     pix_banco: document.getElementById('pf-pix-banco').value.trim(),
   };
 
+  // Set trial expiry — 14 days from now
+  const trialExpiry = new Date();
+  trialExpiry.setDate(trialExpiry.getDate() + 14);
+  perfil.trial_expires_at = trialExpiry.toISOString();
+  perfil.plano = 'trial';
+  perfil.ativo = true;
+
   const { error } = await sbClient.from('perfil_clinica').upsert(perfil, { onConflict: 'user_id' });
 
   if (error) {
@@ -2232,6 +2269,118 @@ function adicionarBotaoWhatsApp(paciente) {
 }
 
 
+
+// ── TRIAL ──
+async function verificarTrial(user) {
+  const { data } = await sbClient
+    .from('perfil_clinica')
+    .select('trial_expires_at, plano, ativo, nome_clinica')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!data) return; // New user — onboarding will handle
+
+  // Check if account is active
+  if (data.ativo === false) {
+    mostrarTelaBloquio('conta_inativa');
+    return;
+  }
+
+  // Check trial
+  if (data.plano === 'trial' && data.trial_expires_at) {
+    const expiry = new Date(data.trial_expires_at);
+    const now = new Date();
+    const diasRestantes = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+
+    if (diasRestantes <= 0) {
+      mostrarTelaBloquio('trial_expirado');
+      return;
+    }
+
+    if (diasRestantes <= 3) {
+      mostrarAvisotrial(diasRestantes);
+    }
+  }
+}
+
+function mostrarAvisotrial(dias) {
+  const aviso = document.createElement('div');
+  aviso.style.cssText = `
+    position:fixed; bottom:20px; right:20px; z-index:999;
+    background:var(--amber-light); border:1px solid var(--amber);
+    border-radius:12px; padding:14px 18px; max-width:280px;
+    font-family:var(--font-body); font-size:13px; color:var(--text);
+    box-shadow:0 4px 20px rgba(46,41,37,0.1);
+  `;
+  aviso.innerHTML = `
+    <div style="font-weight:600;margin-bottom:4px;">⏳ Trial expira em ${dias} dia${dias>1?'s':''}!</div>
+    <div style="font-size:12px;color:var(--ink-mid);margin-bottom:10px;">Assine para continuar usando o Cláudio sem interrupção.</div>
+    <a href="https://wa.me/?text=Olá! Quero assinar o Cláudio." target="_blank" style="display:block;text-align:center;padding:7px;background:var(--sage);color:#fff;border-radius:7px;font-size:12.5px;font-weight:600;text-decoration:none;">Quero assinar →</a>
+    <button onclick="this.parentElement.remove()" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--ink-soft);">×</button>
+  `;
+  document.body.appendChild(aviso);
+}
+
+function mostrarTelaBloquio(motivo) {
+  const msgs = {
+    trial_expirado: {
+      icon: '⏰',
+      title: 'Seu período de teste encerrou',
+      sub: 'Você usou os 14 dias gratuitos do Cláudio. Para continuar acessando, escolha um plano.',
+    },
+    conta_inativa: {
+      icon: '🔒',
+      title: 'Conta temporariamente suspensa',
+      sub: 'Entre em contato para reativar sua conta.',
+    }
+  };
+
+  const m = msgs[motivo] || msgs.trial_expirado;
+
+  // Hide app
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'none';
+
+  const bloq = document.createElement('div');
+  bloq.style.cssText = `
+    position:fixed; inset:0; background:var(--cream);
+    display:flex; align-items:center; justify-content:center;
+    z-index:99999; font-family:var(--font-body);
+  `;
+  bloq.innerHTML = `
+    <div style="text-align:center;max-width:440px;padding:40px 32px;">
+      <div style="font-size:56px;margin-bottom:20px;">${m.icon}</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;color:var(--text);margin-bottom:12px;">${m.title}</div>
+      <div style="font-size:14px;color:var(--ink-mid);line-height:1.7;margin-bottom:32px;">${m.sub}</div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px;">
+        <a href="https://wa.me/?text=Olá! Quero assinar o plano Profissional do Cláudio." target="_blank" style="padding:14px;background:var(--sage);color:#fff;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;">
+          💬 Falar com a equipe para assinar
+        </a>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+          <div style="padding:12px 8px;background:var(--white);border:1px solid var(--border);border-radius:8px;">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--sage)">R$97</div>
+            <div style="font-size:10px;color:var(--ink-soft)">Essencial/mês</div>
+          </div>
+          <div style="padding:12px 8px;background:var(--sage-light);border:2px solid var(--sage);border-radius:8px;">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--sage)">R$197</div>
+            <div style="font-size:10px;color:var(--sage);font-weight:600">Profissional/mês</div>
+          </div>
+          <div style="padding:12px 8px;background:var(--white);border:1px solid var(--border);border-radius:8px;">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--sage)">R$397</div>
+            <div style="font-size:10px;color:var(--ink-soft)">Clínica/mês</div>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="sbClient.auth.signOut().then(()=>location.reload())" style="background:none;border:none;font-size:12px;color:var(--ink-soft);cursor:pointer;text-decoration:underline;">
+        Sair da conta
+      </button>
+    </div>
+  `;
+  document.body.appendChild(bloq);
+}
+
 // ── ONBOARDING ──
 function obProximo(step) {
   [1,2,3].forEach(i => {
@@ -2272,6 +2421,13 @@ async function obFinalizar(semPix = false) {
     pix_nome: semPix ? '' : document.getElementById('ob-pix-nome').value.trim(),
     pix_banco: semPix ? '' : document.getElementById('ob-pix-banco').value.trim(),
   };
+
+  // Set trial expiry — 14 days from now
+  const trialExpiry = new Date();
+  trialExpiry.setDate(trialExpiry.getDate() + 14);
+  perfil.trial_expires_at = trialExpiry.toISOString();
+  perfil.plano = 'trial';
+  perfil.ativo = true;
 
   const { error } = await sbClient.from('perfil_clinica').upsert(perfil, { onConflict: 'user_id' });
 
@@ -2316,6 +2472,198 @@ async function verificarOnboarding(user) {
 
   // Show onboarding
   document.getElementById('modal-onboarding').style.display = 'flex';
+}
+
+
+// ── PRONTUÁRIOS ──
+let allProntuariosData = [];
+
+async function loadProntuarios() {
+  const { data: pacs } = await sbClient.from('pacientes').select('id, nome, telefone, status_pagamento').order('nome');
+  allProntuariosData = pacs || [];
+  renderProntuarioLista(allProntuariosData);
+}
+
+function filtrarProntuarios(q) {
+  if (!q) { renderProntuarioLista(allProntuariosData); return; }
+  renderProntuarioLista(allProntuariosData.filter(p => p.nome.toLowerCase().includes(q.toLowerCase())));
+}
+
+function renderProntuarioLista(list) {
+  const el = document.getElementById('prontuario-lista');
+  document.getElementById('prontuario-detail').style.display = 'none';
+  el.style.display = 'grid';
+
+  if (!list.length) {
+    el.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-soft)"><div style="font-size:32px;margin-bottom:10px">📋</div><div>Nenhum paciente cadastrado</div></div>';
+    return;
+  }
+
+  const colList = ['sage','lavender','amber','rose'];
+  const colMap = {sage:['var(--sage-light)','var(--sage)'],lavender:['var(--lav-light)','var(--lavender)'],amber:['var(--amber-light)','var(--amber)'],rose:['var(--rose-light)','var(--rose)']};
+
+  el.innerHTML = list.map((p, i) => {
+    const col = colList[i % colList.length];
+    const [bg, fg] = colMap[col];
+    const iniciais = p.nome.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    return `
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;cursor:pointer;transition:all .15s;" 
+         onclick="abrirProntuario('${p.id}','${p.nome}')"
+         onmouseover="this.style.borderColor='var(--sage-mid)';this.style.boxShadow='0 4px 16px rgba(46,41,37,0.06)'"
+         onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:38px;height:38px;border-radius:50%;background:${bg};color:${fg};border:1.5px solid ${fg}33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">${iniciais}</div>
+        <div>
+          <div style="font-size:13.5px;font-weight:600;color:var(--text);">${p.nome}</div>
+          <div style="font-size:11px;color:var(--text-soft);">${p.telefone||'Sem telefone'}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="event.stopPropagation();abrirProntuario('${p.id}','${p.nome}')" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--text-soft);cursor:pointer;font-family:var(--font-body);">📋 Ver prontuário</button>
+        <button onclick="event.stopPropagation();gerarLinkPacienteId('${p.id}','${p.nome}')" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--sage);cursor:pointer;font-family:var(--font-body);">🔗 Enviar link</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function abrirProntuario(pacienteId, nome) {
+  document.getElementById('prontuario-lista').style.display = 'none';
+  const detail = document.getElementById('prontuario-detail');
+  detail.style.display = 'block';
+  document.getElementById('pront-detail-nome').textContent = nome;
+  document.getElementById('pront-detail-sub').textContent = 'Prontuário clínico';
+
+  const { data } = await sbClient.from('prontuarios').select('*').eq('paciente_id', pacienteId).single();
+
+  if (!data) {
+    document.getElementById('pront-detail-content').innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--text-soft);">
+        <div style="font-size:32px;margin-bottom:10px">📋</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:6px;">Prontuário não preenchido</div>
+        <div style="font-size:12px;">Envie o link do portal para ${nome} preencher.</div>
+        <button onclick="gerarLinkPacienteId('${pacienteId}','${nome}')" style="margin-top:16px;padding:9px 20px;background:var(--sage);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);">🔗 Gerar link agora</button>
+      </div>`;
+    return;
+  }
+
+  const updated = data.updated_at ? new Date(data.updated_at).toLocaleDateString('pt-BR') : '—';
+  document.getElementById('pront-detail-sub').textContent = 'Atualizado em ' + updated;
+
+  const field = (label, val) => val ? `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10.5px;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">${label}</div>
+      <div style="font-size:13.5px;color:var(--text);line-height:1.6;background:var(--cream);padding:10px 13px;border-radius:8px;">${val}</div>
+    </div>` : '';
+
+  const bemestar = data.bem_estar_escala;
+  const bemestarColor = bemestar <= 3 ? 'var(--rose)' : bemestar <= 6 ? 'var(--amber)' : 'var(--sage)';
+
+  document.getElementById('pront-detail-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);">Bem-estar e queixa</div>
+        ${bemestar ? `<div style="margin-bottom:14px;"><div style="font-size:10.5px;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Bem-estar</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-family:var(--font-serif);font-size:36px;font-weight:700;color:${bemestarColor}">${bemestar}</div>
+            <div style="font-size:11px;color:var(--text-soft)">/10</div>
+          </div></div>` : ''}
+        ${field('Queixa principal', data.queixa_principal)}
+        ${field('Tempo com a queixa', data.historia_queixa)}
+        ${field('Objetivos terapêuticos', data.objetivos_terapia)}
+        ${field('Observações extras', data.observacoes_clinicas)}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);">Histórico e saúde</div>
+        ${field('Tratamentos anteriores', data.tratamentos_anteriores)}
+        ${field('Medicamentos', data.medicamentos)}
+        ${field('Histórico familiar', data.historico_familiar)}
+        ${field('Antecedentes pessoais', data.antecedentes_pessoais)}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);">Estilo de vida</div>
+        ${field('Qualidade do sono', data.qualidade_sono)}
+        ${field('Exercício físico', data.exercicio)}
+        ${field('Substâncias e alimentação', data.alimentacao)}
+        ${field('Situação de trabalho', data.trabalho_escola)}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);">Relações sociais</div>
+        ${field('Relacionamentos', data.relacionamentos)}
+        ${field('Rede de apoio', data.redes_apoio)}
+      </div>
+    </div>
+  `;
+}
+
+function fecharProntuario() {
+  document.getElementById('prontuario-detail').style.display = 'none';
+  document.getElementById('prontuario-lista').style.display = 'grid';
+}
+
+async function gerarLinkPacienteId(pacienteId, nome) {
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  // Check if token already exists
+  const { data: existing } = await sbClient.from('paciente_tokens').select('token').eq('paciente_id', pacienteId).single();
+
+  let token;
+  if (existing) {
+    token = existing.token;
+  } else {
+    const { data: newToken } = await sbClient.from('paciente_tokens').insert({
+      paciente_id: pacienteId,
+      user_id: user.id,
+    }).select('token').single();
+    token = newToken?.token;
+  }
+
+  if (!token) { alert('Erro ao gerar link.'); return; }
+
+  const link = window.location.origin + '/portal_paciente.html?t=' + token;
+
+  // Copy to clipboard
+  navigator.clipboard.writeText(link);
+
+  // Open WhatsApp with link
+  const { data: pac } = await sbClient.from('pacientes').select('nome, telefone').eq('id', pacienteId).single();
+  const { data: perfil } = await sbClient.from('perfil_clinica').select('nome_clinica, nome_profissional').single();
+
+  const primeiroNome = (pac?.nome || nome).split(' ')[0];
+  const clinica = perfil?.nome_clinica || 'nossa clínica';
+  const prof = perfil?.nome_profissional || 'sua psicóloga';
+
+  const msg = `Olá, ${primeiroNome}! 🌿
+
+Aqui é ${prof}, da ${clinica}.
+
+Criei um portal exclusivo para você acompanhar suas sessões, pagamentos e preencher seu perfil de saúde.
+
+Acesse pelo link abaixo — leva menos de 5 minutos e nos ajuda muito a personalizar seu atendimento:
+
+🔗 ${link}
+
+Qualquer dúvida, estou à disposição! 😊`;
+
+  const tel = (pac?.telefone || '').replace(/\D/g, '');
+  const msgEncoded = encodeURIComponent(msg);
+  
+  if (tel) {
+    window.open(`https://wa.me/55${tel}?text=${msgEncoded}`, '_blank');
+  } else {
+    window.open(`https://wa.me/?text=${msgEncoded}`, '_blank');
+  }
+}
+
+async function gerarLinkPaciente() {
+  // Show modal to select patient
+  const { data: pacs } = await sbClient.from('pacientes').select('id, nome').order('nome');
+  if (!pacs?.length) { alert('Cadastre pacientes primeiro!'); return; }
+
+  const select = prompt('Qual paciente?\n' + pacs.map((p,i) => `${i+1}. ${p.nome}`).join('\n') + '\n\nDigite o número:');
+  const idx = parseInt(select) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= pacs.length) return;
+
+  gerarLinkPacienteId(pacs[idx].id, pacs[idx].nome);
 }
 
 // ── INIT ──
