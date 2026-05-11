@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Perfil — Cláudio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --cream:#F7F4EF;--warm:#FDFCFA;--white:#FFFFFF;
+  --sage:#7B9E87;--sage-l:#EEF4F0;--sage-mid:#C8DDD0;--sage-d:#4f7a5c;
+  --lav:#9B8EC4;--lav-l:#F0EEF9;
+  --rose:#C4706A;--rose-l:#FAF0EF;
+  --amber:#C4A882;--amber-l:#F8F3EC;
+  --ink:#2E2925;--ink-mid:#6B6057;--ink-soft:#A09488;
+  --border:#EAE5DE;--border-mid:#D8D1C8;
+  --font-d:'Cormorant Garamond',Georgia,serif;
+  --font-b:'Plus Jakarta Sans',sans-serif;
+}
+html,body{min-height:100%;background:var(--cream);color:var(--ink);font-family:var(--font-b);font-size:14px;line-height:1.6;}
+
+/* HEADER */
+.portal-header{background:var(--white);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+.portal-logo{font-family:var(--font-d);font-size:20px;font-weight:600;color:var(--ink);}
+.portal-logo em{color:var(--sage);font-style:normal;}
+.portal-tag{font-size:10px;color:var(--ink-soft);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;min-height:80vh;flex-direction:column;gap:14px;}
+.spinner{width:36px;height:36px;border:3px solid var(--sage-mid);border-top-color:var(--sage);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* MAIN */
+.portal-main{max-width:680px;margin:0 auto;padding:28px 20px 60px;}
+
+.welcome-card{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
+.welcome-av{width:52px;height:52px;border-radius:50%;background:var(--sage-l);border:2px solid var(--sage-mid);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:20px;font-weight:600;color:var(--sage);flex-shrink:0;}
+.welcome-name{font-family:var(--font-d);font-size:22px;font-weight:600;color:var(--ink);}
+.welcome-sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+/* TABS */
+.tabs{display:flex;gap:0;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:20px;}
+.tab{flex:1;padding:9px;border:none;border-radius:7px;font-family:var(--font-b);font-size:13px;font-weight:500;cursor:pointer;color:var(--ink-soft);background:none;transition:all .15s;}
+.tab.active{background:var(--sage);color:#fff;font-weight:600;}
+
+/* CARDS */
+.section-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+.section-title{font-family:var(--font-d);font-size:17px;font-weight:600;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* AGENDA */
+.sessao-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);}
+.sessao-item:last-child{border-bottom:none;padding-bottom:0;}
+.sessao-data{min-width:80px;text-align:center;padding:8px;background:var(--sage-l);border-radius:8px;}
+.sessao-dia{font-family:var(--font-d);font-size:22px;font-weight:600;color:var(--sage);line-height:1;}
+.sessao-mes{font-size:10px;color:var(--sage);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+.sessao-info{flex:1;}
+.sessao-hora{font-weight:600;font-size:13.5px;color:var(--ink);}
+.sessao-tipo{font-size:11.5px;color:var(--ink-soft);}
+.sessao-status{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;}
+
+/* FINANCEIRO */
+.fin-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);}
+.fin-item:last-child{border-bottom:none;}
+.fin-label{font-size:13px;color:var(--ink);}
+.fin-sub{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.fin-valor{font-family:var(--font-d);font-size:18px;font-weight:600;}
+
+/* PRONTUÁRIO FORM */
+.form-section{margin-bottom:24px;}
+.form-section-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--sage);font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--sage-mid);}
+
+.form-group{margin-bottom:14px;}
+.form-label{font-size:12px;font-weight:600;color:var(--ink-mid);display:block;margin-bottom:5px;}
+.form-input,.form-textarea,.form-select{width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:8px;font-family:var(--font-b);font-size:13px;color:var(--ink);outline:none;transition:border .15s;background:var(--warm);}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--sage);}
+.form-textarea{resize:vertical;min-height:80px;line-height:1.6;}
+
+.scale-row{display:flex;gap:8px;align-items:center;}
+.scale-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:none;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-soft);transition:all .15s;font-family:var(--font-b);}
+.scale-btn.selected{background:var(--sage);border-color:var(--sage);color:#fff;}
+.scale-label{font-size:11px;color:var(--ink-soft);}
+
+.radio-group{display:flex;gap:8px;flex-wrap:wrap;}
+.radio-opt{padding:6px 14px;border:1px solid var(--border);border-radius:20px;font-size:12.5px;cursor:pointer;color:var(--ink-mid);transition:all .15s;font-family:var(--font-b);}
+.radio-opt.selected{background:var(--sage-l);border-color:var(--sage);color:var(--sage);font-weight:600;}
+
+.save-btn{width:100%;padding:13px;background:var(--sage);border:none;border-radius:10px;font-family:var(--font-b);font-size:14px;font-weight:600;color:#fff;cursor:pointer;transition:all .15s;margin-top:8px;}
+.save-btn:hover{background:var(--sage-d);}
+
+.saved-msg{text-align:center;font-size:12.5px;color:var(--sage);margin-top:10px;display:none;}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--ink-soft);}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+.empty-text{font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="portal-header">
+  <div class="portal-logo">Cláu<em>dio</em></div>
+  <div class="portal-tag">Portal do Paciente</div>
+</div>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--ink-soft)">Carregando seu perfil...</div>
+</div>
+
+<div class="portal-main" id="portal-main" style="display:none;">
+
+  <div class="welcome-card">
+    <div class="welcome-av" id="pac-iniciais">?</div>
+    <div>
+      <div class="welcome-name" id="pac-nome">Carregando...</div>
+      <div class="welcome-sub" id="pac-clinica">Conectado à sua clínica</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('agenda')">📅 Agenda</button>
+    <button class="tab" onclick="switchTab('financeiro')">💳 Financeiro</button>
+    <button class="tab" onclick="switchTab('prontuario')">📋 Meu Perfil</button>
+  </div>
+
+  <!-- AGENDA TAB -->
+  <div id="tab-agenda">
+    <div class="section-card">
+      <div class="section-title">📅 Próximas sessões</div>
+      <div id="lista-sessoes">
+        <div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Nenhuma sessão agendada</div></div>
+      </div>
+    </div>
+    <div class="section-card">
+      <div class="section-title">🕐 Histórico</div>
+      <div id="lista-historico">
+        <div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhuma sessão realizada ainda</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINANCEIRO TAB -->
+  <div id="tab-financeiro" style="display:none;">
+    <div class="section-card">
+      <div class="section-title">💳 Resumo financeiro</div>
+      <div id="fin-resumo"></div>
+    </div>
+    <div class="section-card">
+      <div class="section-title">📋 Histórico de pagamentos</div>
+      <div id="fin-historico"></div>
+    </div>
+    <div class="section-card" id="pix-card" style="display:none;">
+      <div class="section-title">💚 Pagamento via Pix</div>
+      <div id="pix-info" style="background:var(--sage-l);border-radius:10px;padding:16px;">
+        <div style="font-size:12px;color:var(--sage);font-weight:600;margin-bottom:10px;">Dados para pagamento</div>
+        <div id="pix-dados" style="font-size:13px;color:var(--ink-mid);line-height:1.8;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRONTUÁRIO TAB -->
+  <div id="tab-prontuario" style="display:none;">
+    <div class="section-card">
+      <div class="section-title">📋 Meu perfil de saúde</div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:20px;padding:10px 12px;background:var(--sage-l);border-radius:8px;">
+        🔒 Suas respostas são confidenciais e ficam disponíveis apenas para sua psicóloga. Isso nos ajuda a personalizar melhor o seu atendimento.
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Como você está se sentindo?</div>
+        <div class="form-group">
+          <label class="form-label">Em uma escala de 1 a 10, como está seu bem-estar hoje?</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+            <div class="scale-row" id="scale-bemestar">
+              ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="scale-btn" onclick="selectScale('bemestar',${n},this)" data-val="${n}">${n}</button>`).join('')}
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span class="scale-label">Muito mal</span>
+            <span class="scale-label">Excelente</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Qual é sua principal queixa ou motivo de buscar terapia?</label>
+          <textarea class="form-textarea" id="pront-queixa" placeholder="Descreva com suas palavras..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Há quanto tempo está com essa queixa?</label>
+          <div class="radio-group" id="radio-tempo">
+            <div class="radio-opt" onclick="selectRadio('tempo','menos1mes',this)">Menos de 1 mês</div>
+            <div class="radio-opt" onclick="selectRadio('tempo','1a6meses',this)">1 a 6 meses</div>
+            <div class="radio-opt" onclick="selectRadio('tempo','6a12meses',this)">6 a 12 meses</div>
+            <div class="radio-opt" onclick="selectRadio('tempo','mais1ano',this)">Mais de 1 ano</div>
+            <div class="radio-opt" onclick="selectRadio('tempo','varios',this)">Vários anos</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Histórico de saúde</div>
+        <div class="form-group">
+          <label class="form-label">Já fez tratamento psicológico ou psiquiátrico antes?</label>
+          <div class="radio-group" id="radio-tratamento">
+            <div class="radio-opt" onclick="selectRadio('tratamento','nao',this)">Não</div>
+            <div class="radio-opt" onclick="selectRadio('tratamento','sim_psi',this)">Sim, psicólogo</div>
+            <div class="radio-opt" onclick="selectRadio('tratamento','sim_psi_psiq',this)">Sim, psicólogo e psiquiatra</div>
+            <div class="radio-opt" onclick="selectRadio('tratamento','sim_psiq',this)">Sim, psiquiatra</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Faz uso de algum medicamento? Se sim, qual(is)?</label>
+          <textarea class="form-textarea" id="pront-medicamentos" placeholder="Ex: Sertralina 50mg, Rivotril 0,5mg... ou 'Não uso medicamentos'" style="min-height:60px;"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tem histórico de condições de saúde mental na família?</label>
+          <div class="radio-group" id="radio-historico-fam">
+            <div class="radio-opt" onclick="selectRadio('historico-fam','nao',this)">Não</div>
+            <div class="radio-opt" onclick="selectRadio('historico-fam','sim',this)">Sim</div>
+            <div class="radio-opt" onclick="selectRadio('historico-fam','nao-sei',this)">Não sei</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descreva brevemente seu histórico de saúde relevante</label>
+          <textarea class="form-textarea" id="pront-historico" placeholder="Diagnósticos anteriores, internações, eventos importantes..."></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Estilo de vida</div>
+        <div class="form-group">
+          <label class="form-label">Como está sua qualidade de sono?</label>
+          <div class="radio-group" id="radio-sono">
+            <div class="radio-opt" onclick="selectRadio('sono','ruim',this)">Ruim</div>
+            <div class="radio-opt" onclick="selectRadio('sono','irregular',this)">Irregular</div>
+            <div class="radio-opt" onclick="selectRadio('sono','regular',this)">Regular</div>
+            <div class="radio-opt" onclick="selectRadio('sono','bom',this)">Bom</div>
+            <div class="radio-opt" onclick="selectRadio('sono','excelente',this)">Excelente</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pratica atividade física?</label>
+          <div class="radio-group" id="radio-exercicio">
+            <div class="radio-opt" onclick="selectRadio('exercicio','nao',this)">Não</div>
+            <div class="radio-opt" onclick="selectRadio('exercicio','raramente',this)">Raramente</div>
+            <div class="radio-opt" onclick="selectRadio('exercicio','1-2x',this)">1-2x por semana</div>
+            <div class="radio-opt" onclick="selectRadio('exercicio','3-5x',this)">3-5x por semana</div>
+            <div class="radio-opt" onclick="selectRadio('exercicio','diario',this)">Diariamente</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Como está sua alimentação?</label>
+          <div class="radio-group" id="radio-alimentacao">
+            <div class="radio-opt" onclick="selectRadio('alimentacao','ruim',this)">Ruim</div>
+            <div class="radio-opt" onclick="selectRadio('alimentacao','irregular',this)">Irregular</div>
+            <div class="radio-opt" onclick="selectRadio('alimentacao','regular',this)">Regular</div>
+            <div class="radio-opt" onclick="selectRadio('alimentacao','saudavel',this)">Saudável</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Faz uso de álcool, tabaco ou outras substâncias?</label>
+          <textarea class="form-textarea" id="pront-substancias" placeholder="Ex: Bebo socialmente, fumante há 5 anos... ou 'Não uso'" style="min-height:60px;"></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Relações e contexto social</div>
+        <div class="form-group">
+          <label class="form-label">Como está sua situação de trabalho/estudo?</label>
+          <div class="radio-group" id="radio-trabalho">
+            <div class="radio-opt" onclick="selectRadio('trabalho','desempregado',this)">Desempregado</div>
+            <div class="radio-opt" onclick="selectRadio('trabalho','empregado',this)">Empregado</div>
+            <div class="radio-opt" onclick="selectRadio('trabalho','autonomo',this)">Autônomo</div>
+            <div class="radio-opt" onclick="selectRadio('trabalho','estudante',this)">Estudante</div>
+            <div class="radio-opt" onclick="selectRadio('trabalho','aposentado',this)">Aposentado</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Como são seus relacionamentos mais próximos?</label>
+          <textarea class="form-textarea" id="pront-relacionamentos" placeholder="Família, parceiro(a), amigos... como estão essas relações?"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Você tem rede de apoio? Com quem conta em momentos difíceis?</label>
+          <textarea class="form-textarea" id="pront-apoio" placeholder="Família, amigos, comunidade religiosa..."></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Objetivos e expectativas</div>
+        <div class="form-group">
+          <label class="form-label">O que você espera alcançar com a terapia?</label>
+          <textarea class="form-textarea" id="pront-objetivos" placeholder="Quais mudanças você gostaria de ver na sua vida?"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Alguma coisa mais que queira compartilhar com sua psicóloga?</label>
+          <textarea class="form-textarea" id="pront-extra" placeholder="Informações adicionais que acha importantes..."></textarea>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="salvarProntuario()">💾 Salvar meu perfil</button>
+      <div class="saved-msg" id="saved-msg">✅ Perfil salvo com sucesso! Sua psicóloga já pode visualizá-lo.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const EDGE_URL = 'https://fbltenrfhruojcxxrrwh.supabase.co/functions/v1/portal-paciente';
+const EDGE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZibHRlbnJmaHJ1b2pjeHhycndoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTQ2MjMsImV4cCI6MjA5MzY3MDYyM30._nrSA92kF9e_-gTHxcILvaYEJdicVU34_9bopDtMBYs';
+
+let pacienteData = null;
+let userId = null;
+let prontuarioValues = { bemestar: 5, tempo: '', tratamento: '', 'historico-fam': '', sono: '', exercicio: '', alimentacao: '', trabalho: '' };
+
+const token = new URLSearchParams(window.location.search).get('t');
+
+async function callEdge(body) {
+  const res = await fetch(EDGE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${EDGE_ANON}`,
+      'apikey': EDGE_ANON,
+    },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+async function init() {
+  if (!token) { showError('Link inválido.'); return; }
+
+  const data = await callEdge({ token });
+  if (data.error) { showError(data.error === 'Token expirado' ? 'Este link expirou. Solicite um novo à sua psicóloga.' : 'Link inválido ou expirado.'); return; }
+
+  pacienteData = data.paciente;
+  userId = data.userId;
+
+  const iniciais = pacienteData.nome.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('pac-iniciais').textContent = iniciais;
+  document.getElementById('pac-nome').textContent = 'Olá, ' + pacienteData.nome.split(' ')[0] + '!';
+  if (data.perfil?.nome_clinica) document.getElementById('pac-clinica').textContent = data.perfil.nome_clinica;
+
+  renderSessoes(data.sessoes || [], data.perfil);
+  renderFinanceiro(data.sessoes || [], data.perfil);
+  if (data.prontuario) preencherProntuario(data.prontuario);
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('portal-main').style.display = 'block';
+}
+
+function renderSessoes(sessoes, perfil) {
+  const hoje = new Date().toISOString();
+  const futuras = sessoes.filter(s => s.data_hora >= hoje);
+  const passadas = sessoes.filter(s => s.data_hora < hoje).slice(0, 5);
+
+  const statusStyle = {agendada:`background:var(--lav-l);color:var(--lav)`,confirmada:`background:var(--sage-l);color:var(--sage)`,cancelada:`background:var(--rose-l);color:var(--rose)`,realizada:`background:var(--sage-l);color:var(--sage)`};
+  const statusLabel = {agendada:'Agendada',confirmada:'Confirmada',cancelada:'Cancelada',realizada:'Realizada'};
+
+  const renderList = (list) => list.map(s => {
+    const d = new Date(s.data_hora);
+    const dia = d.getDate().toString().padStart(2,'0');
+    const mes = d.toLocaleDateString('pt-BR',{month:'short'}).replace('.','');
+    const hora = d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const st = s.status || 'agendada';
+    return `<div class="sessao-item">
+      <div class="sessao-data"><div class="sessao-dia">${dia}</div><div class="sessao-mes">${mes}</div></div>
+      <div class="sessao-info"><div class="sessao-hora">${hora}</div><div class="sessao-tipo">Sessão · ${s.duracao_min||50} min</div></div>
+      <span class="sessao-status" style="${statusStyle[st]||statusStyle.agendada}">${statusLabel[st]||st}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('lista-sessoes').innerHTML = futuras.length > 0 ? renderList(futuras) : '<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Nenhuma sessão agendada</div></div>';
+  document.getElementById('lista-historico').innerHTML = passadas.length > 0 ? renderList(passadas) : '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhuma sessão anterior</div></div>';
+}
+
+function renderFinanceiro(sessoes, perfil) {
+  const pagas = sessoes.filter(s=>s.pago);
+  const pendentes = sessoes.filter(s=>!s.pago && s.status!=='cancelada');
+  const totalPago = pagas.reduce((a,s)=>a+(parseFloat(s.valor)||0),0);
+  const totalPendente = pendentes.reduce((a,s)=>a+(parseFloat(s.valor)||0),0);
+
+  document.getElementById('fin-resumo').innerHTML = `
+    <div class="fin-item">
+      <div><div class="fin-label">Total pago</div><div class="fin-sub">${pagas.length} sessão${pagas.length!==1?'s':''}</div></div>
+      <div class="fin-valor" style="color:var(--sage)">R$ ${totalPago.toFixed(0)}</div>
+    </div>
+    <div class="fin-item">
+      <div><div class="fin-label">Pendente</div><div class="fin-sub">${pendentes.length} sessão${pendentes.length!==1?'s':''}</div></div>
+      <div class="fin-valor" style="color:${totalPendente>0?'var(--rose)':'var(--sage)'}">R$ ${totalPendente.toFixed(0)}</div>
+    </div>`;
+
+  document.getElementById('fin-historico').innerHTML = sessoes.length > 0 ? sessoes.slice(0,8).map(s => {
+    const d = new Date(s.data_hora).toLocaleDateString('pt-BR');
+    return `<div class="fin-item">
+      <div><div class="fin-label">${d}</div><div class="fin-sub">Sessão individual</div></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="fin-valor" style="font-size:15px">R$ ${s.valor||0}</div>
+        <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;${s.pago?'background:var(--sage-l);color:var(--sage)':'background:var(--rose-l);color:var(--rose)'}">${s.pago?'Pago':'Pendente'}</span>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty"><div class="empty-icon">💳</div><div class="empty-text">Nenhum registro ainda</div></div>';
+
+  if (totalPendente > 0 && perfil?.pix_chave) {
+    document.getElementById('pix-card').style.display = 'block';
+    document.getElementById('pix-dados').innerHTML = `
+      🔑 <strong>Chave Pix:</strong> ${perfil.pix_chave}<br>
+      👤 <strong>Favorecido:</strong> ${perfil.pix_nome||'—'}<br>
+      🏦 <strong>Banco:</strong> ${perfil.pix_banco||'—'}<br>
+      💰 <strong>Valor pendente:</strong> R$ ${totalPendente.toFixed(2)}`;
+  }
+}
+
+function preencherProntuario(data) {
+  document.getElementById('pront-queixa').value = data.queixa_principal || '';
+  document.getElementById('pront-medicamentos').value = data.medicamentos || '';
+  document.getElementById('pront-historico').value = data.antecedentes_pessoais || '';
+  document.getElementById('pront-substancias').value = data.alimentacao || '';
+  document.getElementById('pront-relacionamentos').value = data.relacionamentos || '';
+  document.getElementById('pront-apoio').value = data.redes_apoio || '';
+  document.getElementById('pront-objetivos').value = data.objetivos_terapia || '';
+  document.getElementById('pront-extra').value = data.observacoes_clinicas || '';
+  if (data.bem_estar_escala) {
+    const btn = document.querySelector(`#scale-bemestar [data-val="${data.bem_estar_escala}"]`);
+    if (btn) { btn.classList.add('selected'); prontuarioValues.bemestar = data.bem_estar_escala; }
+  }
+}
+
+async function salvarProntuario() {
+  const btn = document.querySelector('.save-btn');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  const prontuario = {
+    queixa_principal: document.getElementById('pront-queixa').value,
+    historia_queixa: prontuarioValues.tempo,
+    antecedentes_pessoais: document.getElementById('pront-historico').value,
+    historico_familiar: prontuarioValues['historico-fam'],
+    tratamentos_anteriores: prontuarioValues.tratamento,
+    medicamentos: document.getElementById('pront-medicamentos').value,
+    qualidade_sono: prontuarioValues.sono,
+    alimentacao: document.getElementById('pront-substancias').value,
+    exercicio: prontuarioValues.exercicio,
+    relacionamentos: document.getElementById('pront-relacionamentos').value,
+    trabalho_escola: prontuarioValues.trabalho,
+    redes_apoio: document.getElementById('pront-apoio').value,
+    objetivos_terapia: document.getElementById('pront-objetivos').value,
+    bem_estar_escala: prontuarioValues.bemestar,
+    observacoes_clinicas: document.getElementById('pront-extra').value,
+  };
+
+  const result = await callEdge({ token, action: 'save_prontuario', data: prontuario });
+
+  btn.textContent = '💾 Salvar meu perfil'; btn.disabled = false;
+
+  if (result.success) {
+    const msg = document.getElementById('saved-msg');
+    msg.style.display = 'block';
+    setTimeout(() => msg.style.display = 'none', 4000);
+  }
+}
+
+function switchTab(tab) {
+  ['agenda','financeiro','prontuario'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', ['agenda','financeiro','prontuario'][i]===tab);
+  });
+}
+
+function selectScale(name, val, el) {
+  prontuarioValues[name] = val;
+  document.querySelectorAll(`#scale-${name} .scale-btn`).forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectRadio(name, val, el) {
+  prontuarioValues[name] = val;
+  document.querySelectorAll(`#radio-${name} .radio-opt`).forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function showError(msg) {
+  document.getElementById('loading').innerHTML = `
+    <div style="text-align:center;padding:40px 20px;">
+      <div style="font-size:40px;margin-bottom:14px;">🔒</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:#2E2925;margin-bottom:8px;">${msg}</div>
+      <div style="font-size:13px;color:#A09488;">Entre em contato com sua psicóloga.</div>
+    </div>`;
+}
+
+// Generate scale buttons
+document.getElementById('scale-bemestar').innerHTML = [1,2,3,4,5,6,7,8,9,10].map(n =>
+  `<button class="scale-btn${n===5?' selected':''}" onclick="selectScale('bemestar',${n},this)" data-val="${n}">${n}</button>`
+).join('');
+
+init();
+</script>
+</body>
+</html>
