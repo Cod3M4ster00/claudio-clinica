@@ -2784,7 +2784,7 @@ function renderPacientesDB(list) {
         <span class="tag-sm" style="${statusStyle[st]||statusStyle.em_dia};font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600">${statusLabel[st]||'Ativo'}</span>
       </div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
-        ${p.telefone ? `<a href="https://wa.me/55${p.telefone.replace(/\D/g,'')}" target="_blank" style="flex:1;padding:5px;border:1px solid #25D36644;border-radius:6px;background:#f0fdf4;font-size:11px;color:#25D366;cursor:pointer;font-family:var(--font-body);text-decoration:none;text-align:center;font-weight:600;">📱 WhatsApp</a>` : ''}
+        ${p.telefone ? `<a href="https://wa.me/${p.telefone.replace(/[^0-9]/g,"")}" target="_blank" style="flex:1;padding:5px;border:1px solid #25D36644;border-radius:6px;background:#f0fdf4;font-size:11px;color:#25D366;cursor:pointer;font-family:var(--font-body);text-decoration:none;text-align:center;font-weight:600;">📱 WhatsApp</a>` : ''}
         <button onclick="editarPaciente('${p.id}')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--text-soft);cursor:pointer;font-family:var(--font-body)">✏️ Editar</button>
         <button onclick="excluirPaciente('${p.id}')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--rose);cursor:pointer;font-family:var(--font-body)">🗑 Excluir</button>
       </div>
@@ -2847,7 +2847,7 @@ function abrirModalPaciente() {
 
 function fecharModalPaciente() {
   document.getElementById('modal-paciente').style.display = 'none';
-  ['np-nome','np-telefone','np-email','np-nascimento','np-valor','np-obs'].forEach(id => {
+  ['np-nome','np-telefone','np-email','np-nascimento','np-valor','np-obs','np-emerg-nome'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -2864,9 +2864,9 @@ async function salvarNovoPaciente() {
   const { error } = await sbClient.from('pacientes').insert({
     user_id: user.id,
     nome,
-    telefone: (document.getElementById('np-ddi').value || '+55') + document.getElementById('np-telefone').value.trim().replace(/\D/g,''),
+    telefone: document.getElementById('np-ddi').value + document.getElementById('np-telefone').value.trim().replace(/[^0-9]/g,''),
     email: document.getElementById('np-email').value.trim(),
-    observacoes: document.getElementById('np-emerg-nome').value.trim() ? 'Emergência: ' + (document.getElementById('np-emerg-ddi').value||'+55') + ' ' + document.getElementById('np-emerg-nome').value.trim() : '',
+    observacoes: (document.getElementById('np-emerg-nome')?.value?.trim() ? 'Emergência: +' + (document.getElementById('np-emerg-ddi')?.value||'55') + ' ' + document.getElementById('np-emerg-nome').value.trim() + (document.getElementById('np-obs')?.value ? '\n' + document.getElementById('np-obs').value : '') : document.getElementById('np-obs')?.value || ''),
     data_nascimento: document.getElementById('np-nascimento').value,
     valor_sessao: parseFloat(document.getElementById('np-valor').value) || 0,
     observacoes: document.getElementById('np-obs').value.trim(),
@@ -2897,14 +2897,34 @@ async function salvarNovoPaciente() {
         <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Nome completo *</label>
         <input id="np-nome" type="text" placeholder="Nome do paciente" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div>
-          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Telefone</label>
-          <input id="np-telefone" type="text" placeholder="(00) 00000-0000" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Telefone</label>
+        <div style="display:flex;gap:6px;">
+          <select id="np-ddi" style="padding:9px 8px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#2E2925;outline:none;background:#FDFCFA;flex-shrink:0;">
+            <option value="55">🇧🇷 +55</option>
+            <option value="1">🇺🇸 +1</option>
+            <option value="351">🇵🇹 +351</option>
+            <option value="44">🇬🇧 +44</option>
+            <option value="34">🇪🇸 +34</option>
+            <option value="33">🇫🇷 +33</option>
+            <option value="49">🇩🇪 +49</option>
+            <option value="39">🇮🇹 +39</option>
+            <option value="54">🇦🇷 +54</option>
+            <option value="56">🇨🇱 +56</option>
+            <option value="57">🇨🇴 +57</option>
+            <option value="598">🇺🇾 +598</option>
+          </select>
+          <input id="np-telefone" type="text" placeholder="(00) 00000-0000" style="flex:1;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
         </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
           <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Data de nascimento</label>
           <input id="np-nascimento" type="date" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
+        <div>
+          <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Valor da sessão (R$)</label>
+          <input id="np-valor" type="number" placeholder="180" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
         </div>
       </div>
       <div>
@@ -2912,12 +2932,21 @@ async function salvarNovoPaciente() {
         <input id="np-email" type="email" placeholder="email@paciente.com" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
       </div>
       <div>
-        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Valor da sessão (R$)</label>
-        <input id="np-valor" type="number" placeholder="180" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">📞 Contato de emergência</label>
+        <div style="display:flex;gap:6px;">
+          <select id="np-emerg-ddi" style="padding:9px 8px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;color:#2E2925;outline:none;background:#FDFCFA;flex-shrink:0;">
+            <option value="55">🇧🇷 +55</option>
+            <option value="1">🇺🇸 +1</option>
+            <option value="351">🇵🇹 +351</option>
+            <option value="44">🇬🇧 +44</option>
+            <option value="34">🇪🇸 +34</option>
+          </select>
+          <input id="np-emerg-nome" type="text" placeholder="Nome — telefone de emergência" style="flex:1;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
+        </div>
       </div>
       <div>
         <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Observações</label>
-        <textarea id="np-obs" placeholder="Anotações iniciais sobre o paciente..." rows="3" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;resize:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'"></textarea>
+        <textarea id="np-obs" placeholder="Anotações iniciais sobre o paciente..." rows="2" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;resize:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'"></textarea>
       </div>
       <div style="display:flex;gap:10px;margin-top:4px;">
         <button onclick="fecharModalPaciente()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
@@ -3013,6 +3042,15 @@ async function salvarNovoPaciente() {
           <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Horário *</label>
           <input id="ns-hora" type="time" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'">
         </div>
+      </div>
+      <div>
+        <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Tipo de sessão</label>
+        <select id="ns-tipo" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;box-sizing:border-box;background:#FDFCFA;">
+          <option value="Semanal">📅 Semanal</option>
+          <option value="Quinzenal">📅 Quinzenal</option>
+          <option value="Avulso">📌 Avulso</option>
+          <option value="Mensal">📅 Mensal</option>
+        </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
