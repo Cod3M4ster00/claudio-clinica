@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cláudio Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0F1117;--surface:#161B27;--card:#1C2235;--border:rgba(255,255,255,0.07);
+  --border-hover:rgba(255,255,255,0.12);--sage:#7B9E87;--sage-l:rgba(123,158,135,0.15);
+  --lav:#9B8EC4;--lav-l:rgba(155,142,196,0.15);--amber:#C4A882;--amber-l:rgba(196,168,130,0.15);
+  --rose:#C4706A;--rose-l:rgba(196,112,106,0.15);--text:#E8ECF4;--muted:#8892A4;--faint:#2A3147;
+  --font-d:'Cormorant Garamond',serif;--font-b:'DM Sans',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;}
+
+/* LOGIN */
+#login-screen{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;z-index:9999;
+}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:40px;width:100%;max-width:360px;}
+.login-logo{font-family:var(--font-d);font-size:26px;font-weight:600;text-align:center;margin-bottom:6px;}
+.login-logo em{color:var(--sage);font-style:normal;}
+.login-sub{font-size:11px;color:var(--muted);text-align:center;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px;}
+.login-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:var(--font-b);font-size:13.5px;outline:none;margin-bottom:12px;transition:border .15s;}
+.login-input:focus{border-color:var(--sage);}
+.login-btn{width:100%;padding:12px;background:var(--sage);border:none;border-radius:8px;color:#fff;font-family:var(--font-b);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;}
+.login-btn:hover{background:#6a8e76;}
+.login-error{font-size:12px;color:var(--rose);text-align:center;margin-top:10px;display:none;}
+
+/* APP */
+#app{display:none;height:100vh;flex-direction:column;}
+
+/* TOPBAR */
+.topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;gap:14px;}
+.topbar-logo{font-family:var(--font-d);font-size:18px;font-weight:600;}
+.topbar-logo em{color:var(--sage);font-style:normal;}
+.topbar-badge{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:var(--sage-l);color:var(--sage);padding:3px 9px;border-radius:20px;margin-left:4px;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.topbar-time{font-size:12px;color:var(--muted);}
+.refresh-btn{padding:6px 14px;background:var(--card);border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--font-b);transition:all .15s;}
+.refresh-btn:hover{border-color:var(--sage);color:var(--sage);}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:28px;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px;}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat-label{font-size:10px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;font-weight:600;}
+.stat-val{font-family:var(--font-d);font-size:28px;font-weight:700;line-height:1;}
+.stat-sub{font-size:10.5px;color:var(--muted);margin-top:4px;}
+
+/* TABLE */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-family:var(--font-d);font-size:18px;font-weight:600;}
+.search-box{background:var(--card);border:1px solid var(--border);border-radius:7px;padding:7px 13px;color:var(--text);font-family:var(--font-b);font-size:13px;outline:none;width:220px;transition:border .15s;}
+.search-box:focus{border-color:var(--sage);}
+.search-box::placeholder{color:var(--muted);}
+
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+th{padding:10px 16px;text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);font-weight:600;}
+td{padding:13px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+
+.pill{display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;}
+.pill.trial{background:var(--amber-l);color:var(--amber);}
+.pill.essencial{background:var(--lav-l);color:var(--lav);}
+.pill.profissional{background:var(--sage-l);color:var(--sage);}
+.pill.clinica{background:rgba(79,142,247,0.15);color:#4F8EF7;}
+.pill.ativo{background:var(--sage-l);color:var(--sage);}
+.pill.inativo{background:var(--rose-l);color:var(--rose);}
+.pill.expirado{background:var(--rose-l);color:var(--rose);}
+
+.action-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border-hover);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;font-family:var(--font-b);margin-right:4px;}
+.action-btn:hover{border-color:var(--sage);color:var(--sage);}
+.action-btn.danger:hover{border-color:var(--rose);color:var(--rose);}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;font-family:var(--font-b);}
+.modal-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:440px;margin:20px;}
+.modal-title{font-family:var(--font-d);font-size:20px;font-weight:600;margin-bottom:20px;}
+.modal-label{font-size:11.5px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px;}
+.modal-select,.modal-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 13px;color:var(--text);font-family:var(--font-b);font-size:13px;outline:none;margin-bottom:12px;transition:border .15s;}
+.modal-select:focus,.modal-input:focus{border-color:var(--sage);}
+.modal-actions{display:flex;gap:10px;margin-top:8px;}
+.btn-cancel{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--muted);font-family:var(--font-b);font-size:13.5px;cursor:pointer;}
+.btn-save{flex:2;padding:10px;border:none;border-radius:8px;background:var(--sage);color:#fff;font-family:var(--font-b);font-size:13.5px;font-weight:600;cursor:pointer;}
+
+/* LOADING */
+.loading-row td{text-align:center;padding:40px;color:var(--muted);}
+
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:var(--faint);border-radius:99px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Cláu<em>dio</em></div>
+    <div class="login-sub">Painel Administrativo</div>
+    <input class="login-input" type="password" id="admin-senha" placeholder="Senha de administrador" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Acessar painel →</button>
+    <div class="login-error" id="login-error">Senha incorreta. Tente novamente.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">Cláu<em>dio</em></div>
+    <span class="topbar-badge">Admin</span>
+    <div class="topbar-right">
+      <span class="topbar-time" id="topbar-time"></span>
+      <button class="refresh-btn" onclick="loadAll()">↻ Atualizar</button>
+      <button class="refresh-btn" onclick="logout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- STATS -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-box"><div class="stat-label">Clínicas</div><div class="stat-val" id="s-clinicas">—</div><div class="stat-sub">cadastradas</div></div>
+      <div class="stat-box"><div class="stat-label">Em trial</div><div class="stat-val" id="s-trial" style="color:var(--amber)">—</div><div class="stat-sub">testando</div></div>
+      <div class="stat-box"><div class="stat-label">Ativas</div><div class="stat-val" id="s-ativas" style="color:var(--sage)">—</div><div class="stat-sub">pagantes</div></div>
+      <div class="stat-box"><div class="stat-label">Pacientes</div><div class="stat-val" id="s-pacs">—</div><div class="stat-sub">no sistema</div></div>
+      <div class="stat-box"><div class="stat-label">Sessões</div><div class="stat-val" id="s-sess">—</div><div class="stat-sub">agendadas</div></div>
+      <div class="stat-box"><div class="stat-label">MRR estimado</div><div class="stat-val" id="s-mrr" style="color:var(--sage)">—</div><div class="stat-sub">R$/mês</div></div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="section-head">
+      <div class="section-title">Clínicas cadastradas</div>
+      <input class="search-box" placeholder="🔍 Buscar clínica..." oninput="filtrar(this.value)">
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Clínica</th>
+            <th>Profissional</th>
+            <th>E-mail</th>
+            <th>Plano</th>
+            <th>Status</th>
+            <th>Trial / Validade</th>
+            <th>Último acesso</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="clinicas-tbody">
+          <tr class="loading-row"><td colspan="8">⏳ Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL EDITAR PLANO -->
+<div class="modal" id="modal-plano">
+  <div class="modal-card">
+    <div class="modal-title">Gerenciar plano</div>
+    <div id="modal-clinica-nome" style="font-size:13px;color:var(--muted);margin-bottom:18px;"></div>
+    <input type="hidden" id="modal-user-id">
+    <label class="modal-label">Plano</label>
+    <select class="modal-select" id="modal-plano-sel">
+      <option value="trial">Trial</option>
+      <option value="essencial">Essencial — R$97/mês</option>
+      <option value="profissional">Profissional — R$197/mês</option>
+      <option value="clinica">Clínica — R$397/mês</option>
+    </select>
+    <label class="modal-label">Status da conta</label>
+    <select class="modal-select" id="modal-ativo-sel">
+      <option value="true">✅ Ativa</option>
+      <option value="false">🔒 Suspensa</option>
+    </select>
+    <label class="modal-label">Trial expira em (deixe vazio para remover)</label>
+    <input class="modal-input" type="date" id="modal-trial-date">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-save" onclick="salvarPlano()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const EDGE = 'https://fbltenrfhruojcxxrrwh.supabase.co/functions/v1/admin-panel';
+const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZibHRlbnJmaHJ1b2pjeHhycndoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTQ2MjMsImV4cCI6MjA5MzY3MDYyM30._nrSA92kF9e_-gTHxcILvaYEJdicVU34_9bopDtMBYs';
+let adminSenha = '';
+let allClinics = [];
+
+async function callAdmin(body) {
+  const res = await fetch(EDGE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON}`, 'apikey': ANON },
+    body: JSON.stringify({ ...body, senha: adminSenha })
+  });
+  return res.json();
+}
+
+async function doLogin() {
+  const s = document.getElementById('admin-senha').value;
+  if (!s) return;
+  adminSenha = s;
+  const data = await callAdmin({ action: 'stats' });
+  if (data.error) {
+    document.getElementById('login-error').style.display = 'block';
+    adminSenha = '';
+    return;
+  }
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  updateStats(data);
+  loadAll();
+  startClock();
+}
+
+function logout() {
+  adminSenha = '';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('admin-senha').value = '';
+}
+
+async function loadAll() {
+  const [stats, list] = await Promise.all([
+    callAdmin({ action: 'stats' }),
+    callAdmin({ action: 'listar' }),
+  ]);
+  updateStats(stats);
+  allClinics = list.clinicas || [];
+  renderTabela(allClinics);
+}
+
+function updateStats(s) {
+  document.getElementById('s-clinicas').textContent = s.total_clinicas ?? '—';
+  document.getElementById('s-trial').textContent = s.em_trial ?? '—';
+  document.getElementById('s-ativas').textContent = s.ativas ?? '—';
+  document.getElementById('s-pacs').textContent = s.total_pacientes ?? '—';
+  document.getElementById('s-sess').textContent = s.total_sessoes ?? '—';
+  document.getElementById('s-mrr').textContent = s.receita_plataforma ? 'R$' + s.receita_plataforma.toLocaleString('pt-BR') : '—';
+}
+
+function renderTabela(list) {
+  const tbody = document.getElementById('clinicas-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="8">Nenhuma clínica cadastrada ainda.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(c => {
+    const plano = c.plano || 'trial';
+    const ativo = c.ativo !== false;
+    const trialExp = c.trial_expires_at ? new Date(c.trial_expires_at) : null;
+    const now = new Date();
+    const trialOk = trialExp && trialExp > now;
+    const diasTrial = trialExp ? Math.ceil((trialExp - now) / (1000*60*60*24)) : null;
+    
+    let statusPill = ativo
+      ? `<span class="pill ativo">Ativa</span>`
+      : `<span class="pill inativo">Suspensa</span>`;
+
+    if (plano === 'trial' && !trialOk && trialExp) {
+      statusPill = `<span class="pill expirado">Trial expirado</span>`;
+    }
+
+    let trialInfo = '—';
+    if (plano === 'trial' && trialExp) {
+      trialInfo = diasTrial > 0
+        ? `<span style="color:var(--amber)">${diasTrial}d restantes</span>`
+        : `<span style="color:var(--rose)">Expirado</span>`;
+    } else if (plano !== 'trial') {
+      trialInfo = `<span style="color:var(--sage)">Assinante</span>`;
+    }
+
+    const ultimoLogin = c.ultimo_login
+      ? new Date(c.ultimo_login).toLocaleDateString('pt-BR')
+      : '—';
+
+    return `<tr>
+      <td style="font-weight:500">${c.nome_clinica || '—'}</td>
+      <td style="color:var(--muted)">${c.nome_profissional || '—'}<br><span style="font-size:10px">${c.crp ? 'CRP '+c.crp : ''}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${c.email || '—'}</td>
+      <td><span class="pill ${plano}">${plano}</span></td>
+      <td>${statusPill}</td>
+      <td>${trialInfo}</td>
+      <td style="font-size:12px;color:var(--muted)">${ultimoLogin}</td>
+      <td>
+        <button class="action-btn" onclick="abrirModal('${c.user_id}','${c.nome_clinica||''}','${plano}',${ativo},'${c.trial_expires_at||''}')">✏️ Plano</button>
+        <button class="action-btn" onclick="enviarWhatsApp('${c.telefone||''}','${c.nome_profissional||''}')">📱</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrar(q) {
+  if (!q) { renderTabela(allClinics); return; }
+  const f = allClinics.filter(c =>
+    (c.nome_clinica||'').toLowerCase().includes(q.toLowerCase()) ||
+    (c.nome_profissional||'').toLowerCase().includes(q.toLowerCase()) ||
+    (c.email||'').toLowerCase().includes(q.toLowerCase())
+  );
+  renderTabela(f);
+}
+
+function abrirModal(userId, nome, plano, ativo, trialDate) {
+  document.getElementById('modal-user-id').value = userId;
+  document.getElementById('modal-clinica-nome').textContent = nome;
+  document.getElementById('modal-plano-sel').value = plano;
+  document.getElementById('modal-ativo-sel').value = String(ativo);
+  document.getElementById('modal-trial-date').value = trialDate ? trialDate.split('T')[0] : '';
+  document.getElementById('modal-plano').style.display = 'flex';
+}
+
+function fecharModal() {
+  document.getElementById('modal-plano').style.display = 'none';
+}
+
+async function salvarPlano() {
+  const userId = document.getElementById('modal-user-id').value;
+  const plano = document.getElementById('modal-plano-sel').value;
+  const ativo = document.getElementById('modal-ativo-sel').value === 'true';
+  const trialDate = document.getElementById('modal-trial-date').value;
+
+  const dados = {
+    plano,
+    ativo,
+    trial_expires_at: trialDate ? new Date(trialDate + 'T23:59:59').toISOString() : null,
+  };
+
+  const result = await callAdmin({ action: 'atualizar_plano', userId, dados });
+  if (result.error) { alert('Erro: ' + result.error); return; }
+  fecharModal();
+  loadAll();
+}
+
+function enviarWhatsApp(tel, nome) {
+  if (!tel) { alert('Sem telefone cadastrado.'); return; }
+  const num = tel.replace(/\D/g,'');
+  const msg = encodeURIComponent(`Olá, ${nome}! Aqui é da equipe do Cláudio. Como está sendo sua experiência com o sistema? 🌿`);
+  window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+}
+
+function startClock() {
+  const update = () => {
+    document.getElementById('topbar-time').textContent = new Date().toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day:'2-digit', month:'2-digit', year:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    });
+  };
+  update();
+  setInterval(update, 60000);
+}
+</script>
+</body>
+</html>
