@@ -886,6 +886,10 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
       <span class="nav-icon">⚙️</span> Perfil da Clínica
     </div>
   </nav>
+  <div style="padding:8px 16px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:center;">
+    <a href="/privacidade.html" target="_blank" style="font-size:10px;color:var(--text-soft);text-decoration:none;">Privacidade</a>
+    <a href="/termos.html" target="_blank" style="font-size:10px;color:var(--text-soft);text-decoration:none;">Termos</a>
+  </div>
   <div class="sidebar-bottom">
     <div class="user-card">
       <div class="avatar">DR</div>
@@ -1317,6 +1321,7 @@ async function loadAgendaDia(dateStr) {
         <span class="tag-sm" style="background:${bg};color:${fg};margin-right:8px">${statusLabel[st]||st}</span>
         <div class="slot-actions">
           <div class="icon-btn" title="Lembrete WhatsApp" onclick="lembreteWhatsApp('${s.pacientes?.nome||''}', '${hora}', '${s.id}')">📱</div>
+          <div class="icon-btn" title="Lembrete por e-mail" onclick="enviarEmailSessao('${s.id}','lembrete')">📧</div>
           <div class="icon-btn" title="Editar sessão" onclick="editarSessao('${s.id}', '${s.data_hora}', '${s.paciente_id}', ${s.duracao_min||50}, ${s.valor||0})">✏️</div>
           <div class="icon-btn" title="Marcar como pago" onclick="marcarPago('${s.id}')" style="${s.pago?'background:var(--sage-light);border-color:var(--sage)':''}">💰</div>
           <div class="icon-btn" title="Cancelar sessão" onclick="cancelarSessao('${s.id}')">🗑</div>
@@ -1510,7 +1515,8 @@ async function renderFin() {
       <td><span class="status-pill" style="${stStyle}">${stLabel}</span></td>
       <td style="display:flex;gap:4px;">
         ${!s.pago ? `<button class="icon-btn" title="Marcar pago" onclick="marcarPago('${s.id}')">💰</button>` : ''}
-        <button class="icon-btn" title="Cobrar" onclick="sendQ('Redigir cobrança gentil para ${nome}')">✉</button>
+        <button class="icon-btn" title="Cobrar por e-mail" onclick="enviarEmail('cobranca','${s.paciente_id}')">📧</button>
+        <button class="icon-btn" title="Cobrar via chat" onclick="sendQ('Redigir cobrança gentil para ${nome}')">✉</button>
       </td>
     </tr>`;
   }).join('');
@@ -2561,6 +2567,37 @@ function renderProntuarioLista(list) {
   const colList = ['sage','lavender','amber','rose'];
   const colMap = {sage:['var(--sage-light)','var(--sage)'],lavender:['var(--lav-light)','var(--lavender)'],amber:['var(--amber-light)','var(--amber)'],rose:['var(--rose-light)','var(--rose)']};
 
+  // Load prontuário badges after render
+  setTimeout(() => {
+    list.forEach(p => {
+      sbClient.from('prontuarios').select('bem_estar_escala,queixa_principal').eq('paciente_id', p.id).single()
+        .then(({ data }) => {
+          const badge = document.getElementById('pront-badge-' + p.id);
+          const bemestarEl = document.getElementById('pront-bemestar-' + p.id);
+          if (badge) {
+            if (data) {
+              badge.textContent = '📋 Preenchido';
+              badge.style.background = 'var(--sage-light)';
+              badge.style.color = 'var(--sage)';
+            } else {
+              badge.textContent = '⚪ Vazio';
+              badge.style.background = 'var(--border)';
+              badge.style.color = 'var(--text-soft)';
+            }
+          }
+          if (bemestarEl && data?.bem_estar_escala) {
+            const score = data.bem_estar_escala;
+            const color = score <= 3 ? 'var(--rose)' : score <= 6 ? 'var(--amber)' : 'var(--sage)';
+            const label = score <= 3 ? '⚠️ Bem-estar baixo' : score <= 6 ? 'Bem-estar moderado' : '✓ Bem-estar bom';
+            bemestarEl.innerHTML = `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:${color}22;border-radius:6px;">
+              <div style="font-family:var(--font-serif);font-size:16px;font-weight:700;color:${color}">${score}/10</div>
+              <div style="font-size:11px;color:${color};font-weight:500">${label}</div>
+            </div>`;
+          }
+        });
+    });
+  }, 100);
+
   el.innerHTML = list.map((p, i) => {
     const col = colList[i % colList.length];
     const [bg, fg] = colMap[col];
@@ -2570,14 +2607,16 @@ function renderProntuarioLista(list) {
          onclick="abrirProntuario('${p.id}','${p.nome}')"
          onmouseover="this.style.borderColor='var(--sage-mid)';this.style.boxShadow='0 4px 16px rgba(46,41,37,0.06)'"
          onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
         <div style="width:38px;height:38px;border-radius:50%;background:${bg};color:${fg};border:1.5px solid ${fg}33;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">${iniciais}</div>
-        <div>
+        <div style="flex:1;">
           <div style="font-size:13.5px;font-weight:600;color:var(--text);">${p.nome}</div>
           <div style="font-size:11px;color:var(--text-soft);">${p.telefone||'Sem telefone'}</div>
         </div>
+        <span id="pront-badge-${p.id}" style="font-size:10px;padding:2px 7px;border-radius:20px;background:var(--border);color:var(--text-soft);flex-shrink:0;">...</span>
       </div>
-      <div style="display:flex;gap:8px;">
+      <div id="pront-bemestar-${p.id}"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
         <button onclick="event.stopPropagation();abrirProntuario('${p.id}','${p.nome}')" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--text-soft);cursor:pointer;font-family:var(--font-body);">📋 Ver prontuário</button>
         <button onclick="event.stopPropagation();gerarLinkPacienteId('${p.id}','${p.nome}')" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;background:none;font-size:11px;color:var(--sage);cursor:pointer;font-family:var(--font-body);">🔗 Enviar link</button>
       </div>
@@ -2651,7 +2690,35 @@ async function abrirProntuario(pacienteId, nome) {
         ${field('Rede de apoio', data.redes_apoio)}
       </div>
     </div>
+
+    <!-- NOTAS CLÍNICAS — só a psicóloga vê -->
+    <div style="margin-top:20px;padding-top:20px;border-top:2px solid var(--sage-mid);">
+      <div style="font-size:11px;font-weight:600;color:var(--sage);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🔒 Notas clínicas (visível apenas para você)</div>
+      <textarea id="notas-clinicas-input" rows="4" placeholder="Observações, hipóteses diagnósticas, evolução do caso..." 
+        style="width:100%;padding:11px 14px;border:1px solid var(--sage-mid);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;resize:vertical;line-height:1.6;background:var(--sage-light);"
+        onfocus="this.style.borderColor='var(--sage)'" onblur="this.style.borderColor='var(--sage-mid)'">${data.notas_clinicas_prof || ''}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <div id="notas-saved-msg" style="font-size:12px;color:var(--sage);display:none;">✅ Notas salvas!</div>
+        <button onclick="salvarNotasClincias('${pacienteId}')" 
+          style="padding:8px 20px;background:var(--sage);border:none;border-radius:8px;color:#fff;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font-body);margin-left:auto;">
+          💾 Salvar notas
+        </button>
+      </div>
+    </div>
   `;
+}
+
+async function salvarNotasClincias(pacienteId) {
+  const notas = document.getElementById('notas-clinicas-input').value;
+  const { error } = await sbClient.from('prontuarios')
+    .update({ notas_clinicas_prof: notas, updated_at: new Date().toISOString() })
+    .eq('paciente_id', pacienteId);
+  
+  if (!error) {
+    const msg = document.getElementById('notas-saved-msg');
+    msg.style.display = 'block';
+    setTimeout(() => msg.style.display = 'none', 3000);
+  }
 }
 
 function fecharProntuario() {
@@ -2727,6 +2794,112 @@ async function gerarLinkPaciente() {
 
 // SQL para adicionar contato de emergência (rode no Supabase):
 // ALTER TABLE pacientes ADD COLUMN IF NOT EXISTS contato_emergencia TEXT;
+
+
+// ── E-MAIL (RESEND) ──
+const EMAIL_EDGE = 'https://fbltenrfhruojcxxrrwh.supabase.co/functions/v1/send-email';
+
+async function enviarEmail(tipo, pacienteId) {
+  // Get patient data
+  const { data: paciente } = await sbClient.from('pacientes').select('*').eq('id', pacienteId).single();
+  if (!paciente?.email) {
+    alert('Este paciente não tem e-mail cadastrado!');
+    return;
+  }
+
+  // Get clinic profile
+  const { data: clinica } = await sbClient.from('perfil_clinica').select('*').single();
+
+  // Get pix data
+  const pix = {
+    chave: clinica?.pix_chave || '',
+    nome: clinica?.pix_nome || '',
+    banco: clinica?.pix_banco || '',
+  };
+
+  // Get next session if lembrete
+  let sessao = null;
+  if (tipo === 'lembrete') {
+    const amanha = new Date();
+    amanha.setDate(amanha.getDate() + 1);
+    const diaStr = amanha.toISOString().split('T')[0];
+    const { data: sess } = await sbClient
+      .from('sessoes')
+      .select('*')
+      .eq('paciente_id', pacienteId)
+      .gte('data_hora', diaStr + 'T00:00:00')
+      .lte('data_hora', diaStr + 'T23:59:59')
+      .order('data_hora')
+      .limit(1);
+    sessao = sess?.[0] || null;
+    if (!sessao) {
+      alert('Nenhuma sessão encontrada para amanhã para este paciente.');
+      return;
+    }
+  }
+
+  const btn = event?.target;
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+
+  try {
+    const res = await fetch(EMAIL_EDGE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer sb_publishable_CYonRa-nWXSaB652tZ70ng_gSJNB5oc`,
+        'apikey': 'sb_publishable_CYonRa-nWXSaB652tZ70ng_gSJNB5oc',
+      },
+      body: JSON.stringify({ tipo, paciente, sessao, clinica, pix })
+    });
+
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
+
+    alert(`✅ E-mail enviado para ${paciente.email}!`);
+  } catch(err) {
+    alert('Erro ao enviar: ' + err.message);
+  } finally {
+    if (btn) { btn.textContent = '📧 E-mail'; btn.disabled = false; }
+  }
+}
+
+async function enviarEmailSessao(sessaoId, tipo) {
+  const { data: sessao } = await sbClient.from('sessoes').select('*, pacientes(*)').eq('id', sessaoId).single();
+  if (!sessao?.pacientes?.email) {
+    alert('Este paciente não tem e-mail cadastrado!');
+    return;
+  }
+  const { data: clinica } = await sbClient.from('perfil_clinica').select('*').single();
+  const pix = { chave: clinica?.pix_chave||'', nome: clinica?.pix_nome||'', banco: clinica?.pix_banco||'' };
+
+  const btn = event?.target;
+  if (btn) { btn.textContent = '...'; btn.disabled = true; }
+
+  try {
+    const res = await fetch(EMAIL_EDGE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer sb_publishable_CYonRa-nWXSaB652tZ70ng_gSJNB5oc`,
+        'apikey': 'sb_publishable_CYonRa-nWXSaB652tZ70ng_gSJNB5oc',
+      },
+      body: JSON.stringify({ tipo, paciente: sessao.pacientes, sessao, clinica, pix })
+    });
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
+    alert(`✅ E-mail enviado para ${sessao.pacientes.email}!`);
+  } catch(err) {
+    alert('Erro: ' + err.message);
+  } finally {
+    if (btn) { btn.textContent = '📧'; btn.disabled = false; }
+  }
+}
+
+
+function updateBottomNav(el) {
+  document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
 
 // ── INIT ──
 renderDays();
@@ -2878,6 +3051,31 @@ async function salvarNovoPaciente() {
   if (error) { alert('Erro ao salvar: ' + error.message); return; }
   fecharModalPaciente();
   loadPacientes();
+
+  // Send welcome email if patient has email
+  const emailVal = document.getElementById('np-email').value.trim();
+  if (emailVal) {
+    // Get the new patient id
+    const { data: newPac } = await sbClient.from('pacientes').select('id').eq('email', emailVal).single();
+    if (newPac?.id) {
+      const { data: clinica } = await sbClient.from('perfil_clinica').select('*').single();
+      await fetch(EMAIL_EDGE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer sb_publishable_CYonRa-nWXSaB652tZ70ng_gSJNB5oc`,
+          'apikey': 'sb_publishable_CYonRa-nWXSaB652tZ70ng_gSJNB5oc',
+        },
+        body: JSON.stringify({
+          tipo: 'boas_vindas',
+          paciente: { nome, email: emailVal },
+          clinica,
+          sessao: null,
+          pix: {}
+        })
+      });
+    }
+  }
 }
 </script>
 
@@ -2947,6 +3145,15 @@ async function salvarNovoPaciente() {
       <div>
         <label style="font-size:11.5px;font-weight:600;color:#6B6057;display:block;margin-bottom:4px;">Observações</label>
         <textarea id="np-obs" placeholder="Anotações iniciais sobre o paciente..." rows="2" style="width:100%;padding:9px 13px;border:1px solid #EAE5DE;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#2E2925;outline:none;resize:none;box-sizing:border-box;" onfocus="this.style.borderColor='#7B9E87'" onblur="this.style.borderColor='#EAE5DE'"></textarea>
+      </div>
+      <div style="padding:10px 12px;background:#EEF4F0;border-radius:8px;margin-top:4px;">
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="np-lgpd" style="margin-top:3px;accent-color:#7B9E87;flex-shrink:0;">
+          <span style="font-size:11.5px;color:#6B6057;line-height:1.5;">
+            O paciente consentiu com o tratamento de seus dados pessoais e de saúde conforme nossa 
+            <a href="/privacidade.html" target="_blank" style="color:#7B9E87;">Política de Privacidade</a> e a LGPD (Lei 13.709/2018).
+          </span>
+        </label>
       </div>
       <div style="display:flex;gap:10px;margin-top:4px;">
         <button onclick="fecharModalPaciente()" style="flex:1;padding:11px;border:1px solid #EAE5DE;border-radius:8px;background:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:500;color:#6B6057;cursor:pointer;">Cancelar</button>
@@ -3356,6 +3563,26 @@ async function salvarNovoPaciente() {
       </div>
     </div>
   </div>
+</div>
+
+
+<!-- BOTTOM NAV (mobile only) -->
+<div id="bottom-nav">
+  <button class="bn-item active" data-panel="overview" onclick="switchPanel('overview');updateBottomNav(this)">
+    <span class="bn-icon">🏠</span>Início
+  </button>
+  <button class="bn-item" data-panel="agenda" onclick="switchPanel('agenda');updateBottomNav(this)">
+    <span class="bn-icon">📅</span>Agenda
+  </button>
+  <button class="bn-item" data-panel="chat" onclick="switchPanel('chat');updateBottomNav(this)">
+    <span class="bn-icon">💬</span>Cláudio
+  </button>
+  <button class="bn-item" data-panel="pacientes" onclick="switchPanel('pacientes');updateBottomNav(this)">
+    <span class="bn-icon">🫂</span>Pacientes
+  </button>
+  <button class="bn-item" data-panel="financeiro" onclick="switchPanel('financeiro');updateBottomNav(this)">
+    <span class="bn-icon">💳</span>Financeiro
+  </button>
 </div>
 
 </body>
