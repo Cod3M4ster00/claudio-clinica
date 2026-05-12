@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidade — Cláudio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--cream:#F7F4EF;--white:#FFFFFF;--sage:#7B9E87;--ink:#2E2925;--ink-mid:#6B6057;--ink-soft:#A09488;--border:#EAE5DE;--font-d:'Cormorant Garamond',serif;--font-b:'DM Sans',sans-serif;}
+body{background:var(--cream);color:var(--ink);font-family:var(--font-b);font-size:14px;line-height:1.8;}
+header{background:var(--white);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:var(--font-d);font-size:20px;font-weight:600;}
+.logo em{color:var(--sage);font-style:normal;}
+.back{font-size:13px;color:var(--sage);text-decoration:none;}
+main{max-width:720px;margin:0 auto;padding:48px 24px 80px;}
+h1{font-family:var(--font-d);font-size:38px;font-weight:600;color:var(--ink);margin-bottom:8px;}
+.updated{font-size:12px;color:var(--ink-soft);margin-bottom:36px;}
+h2{font-family:var(--font-d);font-size:22px;font-weight:600;color:var(--ink);margin:36px 0 12px;}
+p{color:var(--ink-mid);margin-bottom:14px;}
+ul{color:var(--ink-mid);padding-left:20px;margin-bottom:14px;}
+ul li{margin-bottom:6px;}
+.highlight{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:20px 0;}
+.highlight p{margin:0;}
+footer{text-align:center;padding:32px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Cláu<em>dio</em></div>
+  <a href="/" class="back">← Voltar</a>
+</header>
+<main>
+  <h1>Política de Privacidade</h1>
+  <div class="updated">Última atualização: 12 de maio de 2025</div>
+
+  <div class="highlight">
+    <p>🔒 O Cláudio é uma plataforma de gestão para profissionais de saúde mental. Levamos a privacidade e a segurança dos dados muito a sério, especialmente por lidarmos com informações sensíveis de saúde.</p>
+  </div>
+
+  <h2>1. Quem somos</h2>
+  <p>O Cláudio é uma plataforma SaaS desenvolvida para auxiliar psicólogos e profissionais de saúde mental na gestão de suas clínicas. Nossos usuários são os profissionais (psicólogos) que contratam o serviço, e os pacientes são os titulares dos dados tratados dentro da plataforma.</p>
+
+  <h2>2. Quais dados coletamos</h2>
+  <p><strong>Dados dos profissionais (usuários do sistema):</strong></p>
+  <ul>
+    <li>Nome completo, e-mail e senha (para autenticação)</li>
+    <li>Dados profissionais: CRP, especialidade, nome da clínica</li>
+    <li>Dados de contato e endereço da clínica</li>
+    <li>Dados financeiros: chave Pix para recebimento</li>
+  </ul>
+  <p><strong>Dados dos pacientes (inseridos pelos profissionais):</strong></p>
+  <ul>
+    <li>Nome, telefone, e-mail e data de nascimento</li>
+    <li>Histórico de sessões e informações financeiras</li>
+    <li>Prontuário: informações de saúde mental, histórico clínico, estilo de vida</li>
+    <li>Contato de emergência</li>
+  </ul>
+
+  <h2>3. Como usamos os dados</h2>
+  <ul>
+    <li>Prestação do serviço contratado (gestão de agenda, financeiro, prontuários)</li>
+    <li>Envio de lembretes e notificações relacionados ao atendimento</li>
+    <li>Comunicação sobre o serviço (atualizações, suporte)</li>
+    <li>Cumprimento de obrigações legais</li>
+  </ul>
+  <p>Não vendemos, compartilhamos ou monetizamos dados de usuários ou pacientes com terceiros.</p>
+
+  <h2>4. Base legal (LGPD)</h2>
+  <p>O tratamento de dados realizado pelo Cláudio se baseia nas seguintes hipóteses legais previstas na Lei 13.709/2018 (LGPD):</p>
+  <ul>
+    <li><strong>Execução de contrato</strong> — para prestar o serviço contratado pelo profissional</li>
+    <li><strong>Consentimento</strong> — para o tratamento de dados sensíveis de saúde dos pacientes</li>
+    <li><strong>Legítimo interesse</strong> — para melhorias do serviço e comunicações relevantes</li>
+    <li><strong>Obrigação legal</strong> — quando exigido por lei ou autoridade competente</li>
+  </ul>
+
+  <h2>5. Dados sensíveis de saúde</h2>
+  <p>Informações de saúde são consideradas dados sensíveis pela LGPD e recebem proteção especial. O tratamento desses dados só ocorre:</p>
+  <ul>
+    <li>Com o consentimento explícito do titular (paciente)</li>
+    <li>Para finalidades exclusivamente relacionadas ao atendimento em saúde</li>
+    <li>Com acesso restrito ao profissional responsável pelo atendimento</li>
+  </ul>
+
+  <h2>6. Segurança dos dados</h2>
+  <ul>
+    <li>Todos os dados são transmitidos com criptografia TLS/HTTPS</li>
+    <li>Armazenamento em servidores seguros (Supabase — região São Paulo, Brasil)</li>
+    <li>Cada profissional acessa apenas os dados de seus próprios pacientes (Row Level Security)</li>
+    <li>Senhas criptografadas com bcrypt — nunca armazenamos senhas em texto claro</li>
+    <li>Tokens de acesso com expiração automática</li>
+  </ul>
+
+  <h2>7. Compartilhamento de dados</h2>
+  <p>Os dados podem ser compartilhados apenas com:</p>
+  <ul>
+    <li><strong>Supabase</strong> — infraestrutura de banco de dados e autenticação</li>
+    <li><strong>Resend</strong> — serviço de envio de e-mails transacionais</li>
+    <li><strong>Anthropic</strong> — processamento de linguagem natural para o assistente Cláudio</li>
+    <li><strong>Autoridades legais</strong> — quando exigido por lei ou ordem judicial</li>
+  </ul>
+  <p>Todos os fornecedores são selecionados com base em suas políticas de privacidade e segurança.</p>
+
+  <h2>8. Seus direitos (LGPD Art. 18)</h2>
+  <p>Como titular de dados, você tem direito a:</p>
+  <ul>
+    <li>Confirmar a existência de tratamento de seus dados</li>
+    <li>Acessar seus dados</li>
+    <li>Corrigir dados incompletos ou inexatos</li>
+    <li>Solicitar anonimização, bloqueio ou eliminação</li>
+    <li>Portabilidade dos dados</li>
+    <li>Revogar o consentimento a qualquer momento</li>
+    <li>Solicitar informações sobre compartilhamento</li>
+  </ul>
+  <p>Para exercer seus direitos, entre em contato pelo e-mail: <strong>privacidade@claudio.app</strong></p>
+
+  <h2>9. Retenção de dados</h2>
+  <ul>
+    <li>Dados de contas ativas: mantidos durante a vigência do contrato</li>
+    <li>Após cancelamento: dados mantidos por 90 dias para possível reativação</li>
+    <li>Após 90 dias: dados permanentemente excluídos</li>
+    <li>Dados exigidos por lei: mantidos pelo prazo legal aplicável</li>
+  </ul>
+
+  <h2>10. Cookies</h2>
+  <p>Utilizamos apenas cookies essenciais para o funcionamento da plataforma (autenticação e sessão). Não utilizamos cookies de rastreamento ou publicidade.</p>
+
+  <h2>11. Menores de idade</h2>
+  <p>O Cláudio é destinado a profissionais de saúde. O tratamento de dados de menores de 18 anos como pacientes exige consentimento dos responsáveis legais, de responsabilidade do profissional contratante.</p>
+
+  <h2>12. Alterações desta política</h2>
+  <p>Reservamo-nos o direito de atualizar esta política periodicamente. Alterações significativas serão comunicadas por e-mail com 15 dias de antecedência.</p>
+
+  <h2>13. Contato</h2>
+  <p>Para dúvidas, solicitações ou reclamações sobre privacidade:</p>
+  <ul>
+    <li>E-mail: <strong>privacidade@claudio.app</strong></li>
+    <li>Encarregado de Dados (DPO): disponível mediante solicitação</li>
+  </ul>
+</main>
+<footer>© 2025 Cláudio · Todos os direitos reservados</footer>
+</body>
+</html>
