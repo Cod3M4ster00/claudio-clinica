@@ -43,9 +43,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .topbar-time{font-size:12px;color:var(--muted);}
 .refresh-btn{padding:6px 14px;background:var(--card);border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--font-b);transition:all .15s;}
 .refresh-btn:hover{border-color:var(--sage);color:var(--sage);}
+.admin-tabs{display:flex;gap:8px;margin-left:18px;}
+.admin-tab{padding:6px 13px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-family:var(--font-b);cursor:pointer;transition:all .15s;}
+.admin-tab:hover{border-color:var(--sage);color:var(--sage);}
+.admin-tab.active{background:var(--sage-l);border-color:var(--sage);color:var(--sage);}
 
 /* MAIN */
 .main{flex:1;overflow-y:auto;padding:28px;}
+.admin-panel{display:none;}
+.admin-panel.active{display:block;}
 
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px;}
@@ -80,6 +86,38 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .action-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border-hover);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;font-family:var(--font-b);margin-right:4px;}
 .action-btn:hover{border-color:var(--sage);color:var(--sage);}
 .action-btn.danger:hover{border-color:var(--rose);color:var(--rose);}
+
+/* EVOLUIR */
+.evolve-grid{display:grid;grid-template-columns:minmax(320px,0.9fr) minmax(420px,1.1fr);gap:18px;align-items:start;}
+.evolve-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;}
+.evolve-title{font-family:var(--font-d);font-size:20px;font-weight:600;margin-bottom:6px;}
+.evolve-sub{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:18px;}
+.evolve-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:7px;display:block;}
+.evolve-input,.evolve-textarea,.evolve-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font-b);font-size:13px;outline:none;transition:border .15s;}
+.evolve-input,.evolve-select{padding:10px 13px;margin-bottom:13px;}
+.evolve-textarea{min-height:150px;resize:vertical;padding:12px 13px;margin-bottom:13px;line-height:1.55;}
+.evolve-input:focus,.evolve-textarea:focus,.evolve-select:focus{border-color:var(--sage);}
+.evolve-actions{display:flex;gap:10px;align-items:center;}
+.evolve-primary{padding:11px 16px;border:none;border-radius:10px;background:var(--sage);color:#fff;font-family:var(--font-b);font-size:13px;font-weight:700;cursor:pointer;}
+.evolve-primary:disabled{opacity:.5;cursor:not-allowed;}
+.evolve-secondary{padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--muted);font-family:var(--font-b);font-size:13px;cursor:pointer;}
+.evolve-status{font-size:12px;color:var(--muted);margin-left:auto;}
+.evolve-result{display:grid;gap:12px;}
+.result-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.result-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;}
+.result-title{font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);font-weight:700;}
+.result-box pre{white-space:pre-wrap;word-break:break-word;color:var(--text);font-size:12px;line-height:1.55;font-family:Consolas,monospace;}
+.history-list{display:flex;flex-direction:column;gap:10px;}
+.history-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 14px;}
+.history-title{font-size:13.5px;font-weight:700;margin-bottom:5px;}
+.history-meta{font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.history-summary{font-size:12.5px;color:var(--muted);line-height:1.55;}
+.empty-state{padding:28px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--border);border-radius:12px;background:var(--surface);}
+
+@media(max-width:980px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .evolve-grid{grid-template-columns:1fr;}
+}
 
 /* MODAL */
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;font-family:var(--font-b);}
@@ -117,14 +155,19 @@ tr:hover td{background:rgba(255,255,255,0.02);}
   <div class="topbar">
     <div class="topbar-logo">Cláu<em>dio</em></div>
     <span class="topbar-badge">Admin</span>
+    <div class="admin-tabs">
+      <button class="admin-tab active" id="tab-clinicas" onclick="switchAdminPanel('clinicas')">Clínicas</button>
+      <button class="admin-tab" id="tab-evoluir" onclick="switchAdminPanel('evoluir')">Evoluir Cláudio</button>
+    </div>
     <div class="topbar-right">
       <span class="topbar-time" id="topbar-time"></span>
-      <button class="refresh-btn" onclick="loadAll()">↻ Atualizar</button>
+      <button class="refresh-btn" onclick="refreshAdmin()">↻ Atualizar</button>
       <button class="refresh-btn" onclick="logout()">Sair</button>
     </div>
   </div>
 
   <div class="main">
+    <div class="admin-panel active" id="panel-clinicas">
 
     <!-- STATS -->
     <div class="stats-grid" id="stats-grid">
@@ -161,6 +204,62 @@ tr:hover td{background:rgba(255,255,255,0.02);}
         </tbody>
       </table>
     </div>
+    </div>
+
+    <div class="admin-panel" id="panel-evoluir">
+      <div class="evolve-grid">
+        <div class="evolve-card">
+          <div class="evolve-title">Evoluir Cláudio</div>
+          <div class="evolve-sub">Descreva uma melhoria. Codex cria o plano técnico, Claude revisa UX, LGPD, segurança e tom, e o admin decide o próximo passo.</div>
+
+          <label class="evolve-label" for="evolve-title">Título</label>
+          <input class="evolve-input" id="evolve-title" placeholder="Ex: Criar tela de autonomia">
+
+          <label class="evolve-label" for="evolve-priority">Prioridade</label>
+          <select class="evolve-select" id="evolve-priority">
+            <option value="normal">Normal</option>
+            <option value="high">Alta</option>
+            <option value="low">Baixa</option>
+          </select>
+
+          <label class="evolve-label" for="evolve-request">Pedido</label>
+          <textarea class="evolve-textarea" id="evolve-request" placeholder="Digite ou cole aqui o que você quer implementar no Cláudio..."></textarea>
+
+          <div class="evolve-actions">
+            <button class="evolve-primary" id="btn-evolve" onclick="criarEvolucao()">Gerar plano</button>
+            <button class="evolve-secondary" onclick="loadEvolucoes()">Atualizar histórico</button>
+            <span class="evolve-status" id="evolve-status"></span>
+          </div>
+        </div>
+
+        <div class="evolve-result">
+          <div class="evolve-card">
+            <div class="result-head">
+              <div class="result-title">Resultado atual</div>
+              <span class="pill trial" id="evolve-decision-pill">Aguardando pedido</span>
+            </div>
+            <div class="result-box">
+              <div class="result-title">Plano do Codex</div>
+              <pre id="codex-plan">Nenhum plano gerado ainda.</pre>
+            </div>
+            <div class="result-box" style="margin-top:12px;">
+              <div class="result-title">Revisão do Claude</div>
+              <pre id="claude-review">Nenhuma revisão gerada ainda.</pre>
+            </div>
+          </div>
+
+          <div class="evolve-card">
+            <div class="result-head">
+              <div class="evolve-title" style="font-size:17px;margin:0;">Histórico</div>
+              <button class="evolve-secondary" onclick="loadEvolucoes()">Recarregar</button>
+            </div>
+            <div class="history-list" id="evolve-history">
+              <div class="empty-state">Nenhuma evolução carregada.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 </div>
@@ -194,12 +293,22 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 
 <script>
 const EDGE = 'https://fbltenrfhruojcxxrrwh.supabase.co/functions/v1/admin-panel';
+const EVOLVE_EDGE = 'https://fbltenrfhruojcxxrrwh.supabase.co/functions/v1/admin-evoluir';
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZibHRlbnJmaHJ1b2pjeHhycndoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwOTQ2MjMsImV4cCI6MjA5MzY3MDYyM30._nrSA92kF9e_-gTHxcILvaYEJdicVU34_9bopDtMBYs';
 let adminSenha = '';
 let allClinics = [];
 
 async function callAdmin(body) {
   const res = await fetch(EDGE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON}`, 'apikey': ANON },
+    body: JSON.stringify({ ...body, senha: adminSenha })
+  });
+  return res.json();
+}
+
+async function callEvoluir(body) {
+  const res = await fetch(EVOLVE_EDGE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON}`, 'apikey': ANON },
     body: JSON.stringify({ ...body, senha: adminSenha })
@@ -239,6 +348,129 @@ async function loadAll() {
   updateStats(stats);
   allClinics = list.clinicas || [];
   renderTabela(allClinics);
+}
+
+function refreshAdmin() {
+  if (document.getElementById('panel-evoluir')?.classList.contains('active')) {
+    loadEvolucoes();
+    return;
+  }
+  loadAll();
+}
+
+function switchAdminPanel(id) {
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id)?.classList.add('active');
+  document.getElementById('tab-' + id)?.classList.add('active');
+  if (id === 'evoluir') loadEvolucoes();
+}
+
+async function criarEvolucao() {
+  const title = document.getElementById('evolve-title').value.trim();
+  const request = document.getElementById('evolve-request').value.trim();
+  const priority = document.getElementById('evolve-priority').value;
+  const btn = document.getElementById('btn-evolve');
+  const status = document.getElementById('evolve-status');
+
+  if (!request) {
+    status.textContent = 'Descreva a melhoria primeiro.';
+    status.style.color = 'var(--rose)';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Codex + Claude pensando...';
+  status.textContent = 'Gerando plano e revisão.';
+  status.style.color = 'var(--muted)';
+
+  const result = await callEvoluir({ action: 'criar', title, request, priority });
+
+  btn.disabled = false;
+  btn.textContent = 'Gerar plano';
+
+  if (result.error) {
+    status.textContent = result.error;
+    status.style.color = 'var(--rose)';
+    return;
+  }
+
+  status.textContent = 'Plano gerado.';
+  status.style.color = 'var(--sage)';
+  renderEvolucaoAtual(result);
+  loadEvolucoes();
+}
+
+async function loadEvolucoes() {
+  if (!adminSenha) return;
+  const history = document.getElementById('evolve-history');
+  if (!history) return;
+
+  history.innerHTML = '<div class="empty-state">Carregando evoluções...</div>';
+  const result = await callEvoluir({ action: 'listar' });
+
+  if (result.error) {
+    history.innerHTML = `<div class="empty-state" style="color:var(--rose)">${escapeHtml(result.error)}</div>`;
+    return;
+  }
+
+  const requests = result.requests || [];
+  if (!requests.length) {
+    history.innerHTML = '<div class="empty-state">Nenhuma evolução registrada ainda.</div>';
+    return;
+  }
+
+  history.innerHTML = requests.map(item => {
+    const date = item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : '—';
+    const summary = item.final_decision?.summary || item.codex_plan?.summary || item.request_text || '';
+    return `<div class="history-item" onclick='renderEvolucaoAtual(${JSON.stringify(item).replace(/'/g, '&apos;')})'>
+      <div class="history-title">${escapeHtml(item.title || 'Nova evolução')}</div>
+      <div class="history-meta">
+        <span>${escapeHtml(item.status || 'draft')}</span>
+        <span>${escapeHtml(item.priority || 'normal')}</span>
+        <span>${escapeHtml(date)}</span>
+      </div>
+      <div class="history-summary">${escapeHtml(summary)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderEvolucaoAtual(item) {
+  const codex = item.codex_plan || {};
+  const claude = item.claude_review || {};
+  const decision = item.final_decision || {};
+  document.getElementById('codex-plan').textContent = formatJson(codex);
+  document.getElementById('claude-review').textContent = formatJson(claude);
+
+  const pill = document.getElementById('evolve-decision-pill');
+  if (decision.blocked) {
+    pill.textContent = 'Bloqueado';
+    pill.className = 'pill expirado';
+  } else if (decision.needs_changes_before_code) {
+    pill.textContent = 'Ajustes necessários';
+    pill.className = 'pill trial';
+  } else if (decision.approved_for_implementation) {
+    pill.textContent = 'Pronto para implementar';
+    pill.className = 'pill ativo';
+  } else {
+    pill.textContent = 'Planejado';
+    pill.className = 'pill trial';
+  }
+}
+
+function formatJson(value) {
+  if (!value || (typeof value === 'object' && !Object.keys(value).length)) return 'Sem dados.';
+  return JSON.stringify(value, null, 2);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch]));
 }
 
 function updateStats(s) {
