@@ -715,6 +715,57 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 99px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { width: 100%; }
+  .topbar { padding: 0 16px; }
+  .topbar-btn { display: none; }
+  #overview-panel,#pacientes-panel,#agenda-panel,#financeiro-panel,#perfil-panel,#prontuario-panel { padding: 16px 14px; }
+  .stats-row { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .two-col { grid-template-columns: 1fr !important; }
+  .patient-grid { grid-template-columns: 1fr !important; }
+  .greeting { padding: 18px 20px !important; }
+  .greeting-text h1 { font-size: 20px !important; }
+  .greeting-visual { width: 50px !important; height: 50px !important; font-size: 22px !important; }
+  .week-nav { flex-wrap: wrap; gap: 10px; }
+  .week-label { width: 100%; }
+  .day-tabs { overflow-x: auto; width: 100%; }
+  .chat-body { padding: 14px; }
+  .chat-chips { padding: 0 14px 10px; }
+  .chat-input-area { padding: 10px 14px 74px; }
+  .msg { max-width: 90% !important; }
+  .fin-table { overflow-x: auto; display: block; }
+  .fin-table table { min-width: 500px; }
+  .panel { padding-bottom: 72px !important; }
+  #chat-panel { padding-bottom: 0 !important; }
+  #bottom-nav { display: flex !important; }
+}
+
+#bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.bn-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 12px; border-radius: 10px; cursor: pointer;
+  color: var(--text-soft); font-size: 9px; font-weight: 600;
+  letter-spacing: .3px; text-transform: uppercase;
+  font-family: var(--font-body); border: none; background: none; min-width: 52px;
+}
+.bn-item .bn-icon { font-size: 20px; line-height: 1; }
+.bn-item.active { color: var(--sage); background: var(--sage-light); }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -1206,26 +1257,6 @@ html, body { height: 100%; background: var(--cream); color: var(--text); font-fa
 // ── DATA (tudo vem do Supabase) ──
 
 // ── RENDER ──
-function renderPatients() {
-  document.getElementById('patient-grid').innerHTML = patients.map(p => {
-    const [bg,fg] = cols[p.col];
-    return `
-    <div class="patient-card">
-      <div class="patient-head">
-        <div class="p-avatar" style="background:${bg};color:${fg};border:1.5px solid ${fg}33">${p.initials}</div>
-        <div>
-          <div class="p-name">${p.name}</div>
-          <div class="p-since">Desde ${p.since}</div>
-        </div>
-      </div>
-      <div class="p-row"><span class="p-row-label">Sessões</span><span class="p-row-val">${p.sessions}</span></div>
-      <div class="p-row"><span class="p-row-label">Próxima</span><span class="p-row-val">${p.next}</span></div>
-      <div class="p-row"><span class="p-row-label">Pagamento</span>
-        <span class="tag-sm" style="${statusStyle[p.status]};font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600">${statusLabel[p.status]}</span>
-      </div>
-    </div>`;
-  }).join('');
-}
 
 // ── AGENDA REAL ──
 let agendaData = [];
@@ -1439,11 +1470,10 @@ async function salvarNovaSessao() {
     paciente_id,
     data_hora: brDate.toISOString(),
     duracao_min: parseInt(document.getElementById('ns-duracao').value) || 50,
-    notas: (document.getElementById('ns-tipo').value || 'semanal') + (document.getElementById('ns-notas').value ? ' — ' + document.getElementById('ns-notas').value : ''),
+    notas: (document.getElementById('ns-tipo')?.value || 'Avulso') + (document.getElementById('ns-notas')?.value ? ' — ' + document.getElementById('ns-notas').value : ''),
     valor,
     status: 'agendada',
     pago: false,
-    notas: document.getElementById('ns-notas').value.trim(),
   });
 
   btn.textContent = 'Salvar Sessão'; btn.disabled = false;
@@ -2147,13 +2177,6 @@ async function salvarPerfil() {
     pix_banco: document.getElementById('pf-pix-banco').value.trim(),
   };
 
-  // Set trial expiry — 14 days from now
-  const trialExpiry = new Date();
-  trialExpiry.setDate(trialExpiry.getDate() + 14);
-  perfil.trial_expires_at = trialExpiry.toISOString();
-  perfil.plano = 'trial';
-  perfil.ativo = true;
-
   const { error } = await sbClient.from('perfil_clinica').upsert(perfil, { onConflict: 'user_id' });
 
   if (error) {
@@ -2304,17 +2327,16 @@ Caso precise remarcar, avise com antecedência. Até breve! 😊`;
   const msgEncoded = encodeURIComponent(msg);
 
   if (tel) {
-    window.open(`https://wa.me/55${tel}?text=${msgEncoded}`, '_blank');
+    window.open(`https://wa.me/${tel}?text=${msgEncoded}`, '_blank');
   } else {
     window.open(`https://wa.me/?text=${msgEncoded}`, '_blank');
-    alert('Telefone do paciente não cadastrado. Selecione o contato manualmente no WhatsApp.');
+    alert('Telefone não cadastrado. Selecione o contato manualmente.');
   }
 }
 
 function formatarTelefone(tel) {
   if (!tel) return '';
-  // Remove everything except digits
-  return tel.replace(/\D/g, '');
+  return tel.replace(/[^0-9]/g, '');
 }
 
 // Add WhatsApp button to patient cards
@@ -2322,7 +2344,7 @@ function adicionarBotaoWhatsApp(paciente) {
   if (!paciente.telefone) return '';
   const tel = paciente.telefone.replace(/\D/g, '');
   const msg = encodeURIComponent(`Olá, ${paciente.nome}! 🌿 Entrando em contato da clínica.`);
-  return `<a href="https://wa.me/55${tel}?text=${msg}" target="_blank" style="
+  return `<a href="https://wa.me/${tel}?text=${msg}" target="_blank" style="
     display:flex;align-items:center;justify-content:center;gap:4px;
     padding:5px;border:1px solid #25D36644;border-radius:6px;
     background:#f0fdf4;font-size:11px;color:#25D366;
@@ -2774,7 +2796,7 @@ Qualquer dúvida, estou à disposição! 😊`;
   const msgEncoded = encodeURIComponent(msg);
   
   if (tel) {
-    window.open(`https://wa.me/55${tel}?text=${msgEncoded}`, '_blank');
+    window.open(`https://wa.me/${tel}?text=${msgEncoded}`, '_blank');
   } else {
     window.open(`https://wa.me/?text=${msgEncoded}`, '_blank');
   }
@@ -3029,6 +3051,10 @@ function fecharModalPaciente() {
 async function salvarNovoPaciente() {
   const nome = document.getElementById('np-nome').value.trim();
   if (!nome) { alert('Nome é obrigatório!'); return; }
+  if (!document.getElementById('np-lgpd').checked) {
+    alert('É necessário confirmar o consentimento do paciente conforme a LGPD antes de salvar.');
+    return;
+  }
   const btn = document.getElementById('btn-salvar-paciente');
   btn.textContent = 'Salvando...'; btn.disabled = true;
 
@@ -3039,10 +3065,9 @@ async function salvarNovoPaciente() {
     nome,
     telefone: document.getElementById('np-ddi').value + document.getElementById('np-telefone').value.trim().replace(/[^0-9]/g,''),
     email: document.getElementById('np-email').value.trim(),
-    observacoes: (document.getElementById('np-emerg-nome')?.value?.trim() ? 'Emergência: +' + (document.getElementById('np-emerg-ddi')?.value||'55') + ' ' + document.getElementById('np-emerg-nome').value.trim() + (document.getElementById('np-obs')?.value ? '\n' + document.getElementById('np-obs').value : '') : document.getElementById('np-obs')?.value || ''),
     data_nascimento: document.getElementById('np-nascimento').value,
     valor_sessao: parseFloat(document.getElementById('np-valor').value) || 0,
-    observacoes: document.getElementById('np-obs').value.trim(),
+    observacoes: (document.getElementById('np-emerg-nome')?.value?.trim() ? 'Emergência: +' + (document.getElementById('np-emerg-ddi')?.value||'55') + ' ' + document.getElementById('np-emerg-nome').value.trim() + (document.getElementById('np-obs')?.value ? ' | ' + document.getElementById('np-obs').value : '') : document.getElementById('np-obs')?.value || ''),
     status_pagamento: 'em_dia',
   });
 
